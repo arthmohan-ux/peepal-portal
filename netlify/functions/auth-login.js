@@ -6,7 +6,7 @@ exports.handler = async (event, context) => {
 
   const params = new URLSearchParams({
     client_id:     process.env.GOOGLE_CLIENT_ID,
-    redirect_uri:  `${process.env.NEXTAUTH_URL}/api/auth/callback`,
+    redirect_uri:  `${process.env.NEXTAUTH_URL}/.netlify/functions/auth-callback`,
     response_type: 'code',
     scope:         'openid email profile',
     access_type:   'offline',
