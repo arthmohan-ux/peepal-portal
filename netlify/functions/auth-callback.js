@@ -62,10 +62,20 @@ exports.handler = async (event) => {
       .setExpirationTime('8h')
       .sign(SECRET);
 
+    // Parse state to restore candidate param after login
+    const stateParam = params.get('state') || '';
+    let redirectTo = '/dashboard';
+    if (stateParam) {
+      try {
+        const stateObj = JSON.parse(stateParam);
+        if (stateObj.candidate) redirectTo = `/dashboard?candidate=${stateObj.candidate}`;
+      } catch {}
+    }
+
     return {
       statusCode: 302,
       headers: {
-        Location: '/dashboard',
+        Location: redirectTo,
         'Set-Cookie': `peepal_session=${session}; HttpOnly; Secure; SameSite=Lax; Max-Age=28800; Path=/`,
       },
       body: '',

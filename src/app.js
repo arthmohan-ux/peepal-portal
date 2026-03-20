@@ -63,7 +63,12 @@ async function loadCandidates() {
 
   try {
     const res  = await fetch('/api/candidates');
-    if (res.status === 401) { window.location.href = '/login'; return; }
+    if (res.status === 401) {
+      // Preserve candidate param through login
+      const candidate = new URLSearchParams(window.location.search).get('candidate');
+      window.location.href = candidate ? `/api/auth/login?candidate=${candidate}` : '/login';
+      return;
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const data = await res.json();
@@ -72,9 +77,19 @@ async function loadCandidates() {
     applyFilters();
     renderStats();
 
-    // Set user name from session cookie (decoded on client as non-sensitive display)
-    // Name is in the JWT payload — server sets it in a readable meta tag on future builds
-    // For now the name is just shown from a /api/me endpoint if added
+    // ── Auto-open candidate from URL param ──
+    const urlParams = new URLSearchParams(window.location.search);
+    const candidateRow = parseInt(urlParams.get('candidate'));
+    if (candidateRow && !isNaN(candidateRow)) {
+      const found = allCandidates.find(c => c._row === candidateRow);
+      if (found) {
+        // Open on Feedback & Scores tab
+        window.__autoOpenTab = 'feedback';
+        openCandidatePanelByRow(candidateRow);
+        // Clean URL without reloading
+        window.history.replaceState({}, '', '/dashboard');
+      }
+    }
 
   } catch (err) {
     setSyncBadge('error');

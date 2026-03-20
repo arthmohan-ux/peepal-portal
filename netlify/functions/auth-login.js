@@ -1,8 +1,14 @@
 // netlify/functions/auth-login.js
 // Redirects user to Google OAuth consent screen
+// Preserves ?candidate= param through login via OAuth state
 
 exports.handler = async (event, context) => {
   const rootUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
+
+  // Grab any ?candidate= or ?redirect= from the login URL and pass through state
+  const qs        = new URLSearchParams(event.rawQuery || '');
+  const candidate = qs.get('candidate') || '';
+  const state     = candidate ? JSON.stringify({ candidate }) : '';
 
   const params = new URLSearchParams({
     client_id:     process.env.GOOGLE_CLIENT_ID,
@@ -13,6 +19,8 @@ exports.handler = async (event, context) => {
     prompt:        'select_account',
     hd:            process.env.ALLOWED_DOMAIN,
   });
+
+  if (state) params.set('state', state);
 
   return {
     statusCode: 302,
