@@ -26,7 +26,9 @@ function openCandidatePanelByRow(rowNum) {
   const c = candidates.find(x => x._row === rowNum);
   if (!c) return;
   currentCandidate = c;
-  activeTab = 'info';
+  // Use auto-open tab if set (e.g. from shared link), otherwise default to info
+  activeTab = window.__autoOpenTab || 'info';
+  window.__autoOpenTab = null; // clear after use
   renderPanel(c);
   document.getElementById('candidate-panel-overlay').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
@@ -64,7 +66,17 @@ function renderPanel(c) {
             ${c.status ? `<span class="status-pill ${getStatusClass(c.status)}">${escHtml(c.status)}</span>` : ''}
           </div>
         </div>
-        <button class="panel-close" onclick="forceClosePanel()">×</button>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <button onclick="copyCandidateLink(${c._row})" id="copy-link-btn" style="
+            background:var(--slate-100);border:1.5px solid var(--slate-200);border-radius:8px;
+            padding:6px 12px;font-size:10px;font-weight:700;color:var(--slate-500);
+            cursor:pointer;transition:all 0.15s;white-space:nowrap;
+          " onmouseover="this.style.borderColor='#6366F1';this.style.color='#4338CA'"
+             onmouseout="this.style.borderColor='var(--slate-200)';this.style.color='var(--slate-500)'">
+            🔗 Copy Link
+          </button>
+          <button class="panel-close" onclick="forceClosePanel()">×</button>
+        </div>
       </div>
     </div>
 
@@ -564,6 +576,30 @@ async function sendEmail() {
   }
 }
 
+// ── COPY SHAREABLE LINK ──
+function copyCandidateLink(row) {
+  const url = `${window.location.origin}/dashboard?candidate=${row}`;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById('copy-link-btn');
+    if (btn) {
+      const orig = btn.innerHTML;
+      btn.innerHTML = '✓ Copied!';
+      btn.style.color = '#166534';
+      btn.style.borderColor = '#86EFAC';
+      btn.style.background = '#DCFCE7';
+      setTimeout(() => {
+        btn.innerHTML = orig;
+        btn.style.color = '';
+        btn.style.borderColor = '';
+        btn.style.background = '';
+      }, 2000);
+    }
+  }).catch(() => {
+    // Fallback for browsers without clipboard API
+    prompt('Copy this link:', url);
+  });
+}
+
 // ── EXPOSE GLOBALS ──
 window.openCandidatePanelByRow = openCandidatePanelByRow;
 window.closeCandidatePanel     = closeCandidatePanel;
@@ -575,3 +611,4 @@ window.sendEmail               = sendEmail;
 window.toggleRecipient         = toggleRecipient;
 window.addCustomRecipient      = addCustomRecipient;
 window.updateEmailPreview      = updateEmailPreview;
+window.copyCandidateLink       = copyCandidateLink;
