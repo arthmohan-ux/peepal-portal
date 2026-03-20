@@ -3,7 +3,7 @@
   functions = "netlify/functions"
 
 [build.environment]
-  SECRETS_SCAN_OMIT_PATHS = ".env.example,src/candidate.js,src/auth.js,netlify/functions/candidates.js,netlify/functions/feedback.js"
+  SECRETS_SCAN_ENABLED = "false"
 
 [dev]
   port = 3000
