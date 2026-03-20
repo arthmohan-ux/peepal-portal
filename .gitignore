@@ -1,0 +1,19 @@
+# Environment variables — NEVER commit these
+.env
+.env.local
+.env.production
+
+# Vercel
+.vercel
+
+# Dependencies
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Service account key — keep this local only
+*.json
+!package.json
+!vercel.json

@@ -1,0 +1,13 @@
+{
+  "name": "peepal-hiring-portal",
+  "version": "1.0.0",
+  "description": "Peepal Consulting internal hiring portal",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "dependencies": {
+    "googleapis": "^140.0.0",
+    "jose": "^5.2.0"
+  }
+}

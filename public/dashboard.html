@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Peepal Hiring Portal</title>
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body class="dash-body">
+
+  <!-- ── TOP NAV ── -->
+  <nav class="nav">
+    <div class="nav-left">
+      <div class="nav-logo">P</div>
+      <span class="nav-title">HIRING <strong>PORTAL</strong></span>
+    </div>
+    <div class="nav-right">
+      <div id="sync-badge" class="sync-badge sync-connecting">Connecting...</div>
+      <div class="nav-user">
+        <img id="user-avatar" src="" alt="" class="user-avatar hidden">
+        <span id="user-name" class="user-name"></span>
+      </div>
+      <button onclick="logout()" class="logout-btn">Sign out</button>
+    </div>
+  </nav>
+
+  <!-- ── FILTER BAR ── -->
+  <div class="filter-bar">
+    <div class="filter-row">
+
+      <div class="filter-group">
+        <label class="filter-label">Search</label>
+        <input type="text" id="search" placeholder="Name, role, email..." class="filter-input filter-search" oninput="applyFilters()">
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Group by</label>
+        <select id="groupBy" onchange="applyFilters()" class="filter-select">
+          <option value="none">No grouping</option>
+          <option value="department">Department</option>
+          <option value="role">Role</option>
+          <option value="recruiter">Recruiter</option>
+          <option value="manager">Manager</option>
+          <option value="status">Status</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Department</label>
+        <select id="filterDept" onchange="applyFilters()" class="filter-select">
+          <option value="">All Departments</option>
+          <option value="TA">TA</option>
+          <option value="BD">BD</option>
+          <option value="Central Marketing">Central Marketing</option>
+          <option value="TAD">TAD</option>
+          <option value="HR">HR</option>
+          <option value="Founder's Office">Founder's Office</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Role</label>
+        <select id="filterRole" onchange="applyFilters()" class="filter-select">
+          <option value="">All Roles</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Recruiter</label>
+        <select id="filterRecruiter" onchange="applyFilters()" class="filter-select">
+          <option value="">All Recruiters</option>
+          <option value="Ramya">Ramya</option>
+          <option value="Krishna">Krishna</option>
+          <option value="Aditi">Aditi</option>
+          <option value="Renjith">Renjith</option>
+          <option value="Subhiksha">Subhiksha</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Status</label>
+        <select id="filterStatus" onchange="applyFilters()" class="filter-select">
+          <option value="">All Statuses</option>
+          <!-- populated dynamically by app.js based on selected role -->
+        </select>
+      </div>
+
+      <div class="filter-group filter-group-actions">
+        <button onclick="clearFilters()" class="btn-clear">Clear</button>
+        <button onclick="loadCandidates()" class="btn-sync">↻ Sync</button>
+      </div>
+
+    </div>
+
+    <!-- Active filter pills -->
+    <div id="active-filters" class="active-filters"></div>
+
+    <!-- Stats bar -->
+    <div id="stats-bar" class="stats-bar">
+      <span id="stat-total" class="stat-item"></span>
+      <span id="stat-active" class="stat-item"></span>
+      <span id="stat-joined" class="stat-item"></span>
+      <span id="stat-selected" class="stat-item"></span>
+    </div>
+
+  </div>
+
+  <!-- ── CANDIDATE TABLE ── -->
+  <div class="table-container">
+    <div id="table-loading" class="table-loading">
+      <div class="spinner"></div>
+      <p>Loading candidates...</p>
+    </div>
+    <div id="table-error" class="table-error hidden"></div>
+    <table id="candidate-table" class="candidate-table hidden">
+      <thead>
+        <tr>
+          <th class="col-name">Candidate</th>
+          <th class="col-role">Role</th>
+          <th class="col-dept">Dept</th>
+          <th class="col-recruiter">Recruiter</th>
+          <th class="col-manager">Manager</th>
+          <th class="col-status">Status</th>
+          <th class="col-sourcing">Sourced</th>
+          <th class="col-aptitude">Aptitude</th>
+          <th class="col-actions"></th>
+        </tr>
+      </thead>
+      <tbody id="candidate-tbody"></tbody>
+    </table>
+    <div id="table-empty" class="table-empty hidden">
+      <p>No candidates match the current filters.</p>
+    </div>
+  </div>
+
+  <!-- ── CANDIDATE PANEL (slides in from right) ── -->
+  <div id="candidate-panel-overlay" class="panel-overlay hidden" onclick="closeCandidatePanel(event)">
+    <div class="candidate-panel" id="candidate-panel">
+      <!-- Injected by candidate.js -->
+    </div>
+  </div>
+
+  <script src="/src/app.js"></script>
+  <script src="/src/candidate.js"></script>
+  <script src="/src/email.js"></script>
+</body>
+</html>
