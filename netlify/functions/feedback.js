@@ -97,7 +97,13 @@ exports.handler = async (event) => {
     const candidateDept = deptRes.data.values?.[0]?.[0] || '';
     const stageLabel    = stage ? stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '';
 
-    // Append row to Feedback Log (separate from batchUpdate so it always appends)
+    // Write remarks to Master Tracker
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: process.env.SHEET_ID,
+      requestBody: { valueInputOption: 'USER_ENTERED', data: updates },
+    });
+
+    // Append row to Feedback Log
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID,
       range: `'${logSheet}'!A:K`,
@@ -116,9 +122,6 @@ exports.handler = async (event) => {
         scores?.hunger || '',
         '',
       ]] },
-    });
-      spreadsheetId: process.env.SHEET_ID,
-      requestBody: { valueInputOption: 'USER_ENTERED', data: updates },
     });
 
     return {
