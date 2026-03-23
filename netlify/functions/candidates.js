@@ -95,7 +95,7 @@ exports.handler = async (event) => {
 
     return {
       statusCode: 200,
-      headers: { ...headers, 'Cache-Control': 's-maxage=30, stale-while-revalidate=60' },
+      headers: { ...headers, 'Cache-Control': 'no-store' },
       body: JSON.stringify({ success: true, count: candidates.length, candidates }),
     };
 

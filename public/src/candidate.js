@@ -632,13 +632,16 @@ async function saveFeedback() {
 
     if (data.success) {
       if (msgEl) msgEl.innerHTML = '<div class="send-success">✓ Saved successfully</div>';
-      await window.loadCandidates();
+      // Force fresh fetch by adding cache-bust param
+      const freshRes = await fetch('/api/candidates?t=' + Date.now());
+      if (freshRes.ok) {
+        const freshData = await freshRes.json();
+        window.__allCandidates = freshData.candidates || [];
+      }
       const updated = window.allCandidates().find(x => x._row === currentCandidate._row);
       if (updated) {
         currentCandidate = updated;
-        // Re-render the full panel to show updated feedback history
         renderPanel(updated);
-        // Switch back to feedback tab
         switchTab('feedback');
       }
       btn.textContent = '💾 Save Feedback';

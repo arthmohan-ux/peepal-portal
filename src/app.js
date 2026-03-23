@@ -85,6 +85,7 @@ async function loadCandidates() {
 
     const data = await res.json();
     allCandidates = data.candidates || [];
+    window.__allCandidates = allCandidates;
     setSyncBadge('live');
     applyFilters();
     renderStats();
@@ -421,7 +422,8 @@ function logout() {
 }
 
 // ── EXPOSE GLOBALS needed by candidate.js ──
-window.allCandidates  = () => allCandidates;
+window.allCandidates  = () => window.__allCandidates || allCandidates;
+window.__allCandidates = allCandidates;
 window.ROLE_PIPELINE  = ROLE_PIPELINE;
 window.getStatusClass = getStatusClass;
 window.escHtml        = escHtml;
