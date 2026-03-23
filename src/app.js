@@ -64,9 +64,10 @@ async function loadCandidates() {
   try {
     const res  = await fetch('/api/candidates');
     if (res.status === 401) {
-      // Preserve candidate param through login
-      const candidate = new URLSearchParams(window.location.search).get('candidate');
-      window.location.href = candidate ? `/api/auth/login?candidate=${candidate}` : '/login';
+      if (window.location.hostname !== 'localhost') {
+        const candidate = new URLSearchParams(window.location.search).get('candidate');
+        window.location.href = candidate ? `/api/auth/login?candidate=${candidate}` : '/login';
+      }
       return;
     }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

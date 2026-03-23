@@ -16,7 +16,10 @@ const COLS = {
   OFFERED_DATE: 26, JOINING_DATE: 27,
 };
 
+const IS_DEV = process.env.NEXTAUTH_URL?.includes('localhost');
+
 async function getSession(event) {
+  if (IS_DEV) return { email: 'dev@peepalconsulting.com', name: 'Dev User' };
   const cookie = event.headers.cookie || '';
   const match  = cookie.match(/peepal_session=([^;]+)/);
   if (!match) return null;
