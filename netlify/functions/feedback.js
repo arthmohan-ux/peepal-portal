@@ -52,10 +52,14 @@ exports.handler = async (event) => {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  const { row, aptitudeScore, stage, notes } = JSON.parse(event.body || '{}');
+  const { row, stage, notes, scores } = JSON.parse(event.body || '{}');
 
   if (!row || row < 4) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid row number' }) };
+  }
+
+  if (!notes && !scores?.acumen && !scores?.intel && !scores?.hunger) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: 'No data to update' }) };
   }
 
   const sheetName = process.env.MASTER_SHEET_NAME || 'Master Tracker';
@@ -64,25 +68,22 @@ exports.handler = async (event) => {
     const sheets  = getSheetClient();
     const updates = [];
 
-    if (notes) {
-      const timestamp  = new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-      const prefix     = stage ? `[${stage} — ${timestamp} — ${session.name}] ` : `[${timestamp} — ${session.name}] `;
-      const newRemark  = prefix + notes;
-      const colLetter  = colToLetter(20); // Remarks = col 20
-      const range      = `'${sheetName}'!${colLetter}${row}`;
-      const existing   = await sheets.spreadsheets.values.get({ spreadsheetId: process.env.SHEET_ID, range });
-      const existingVal = existing.data.values?.[0]?.[0] || '';
-      updates.push({ range, values: [[existingVal ? `${existingVal}\n\n${newRemark}` : newRemark]] });
-    }
+    // Build scores line if any scores provided
+    const scoreParts = [];
+    if (scores?.acumen) scoreParts.push(`Acumen: ${scores.acumen}/5`);
+    if (scores?.intel)  scoreParts.push(`Intel: ${scores.intel}/5`);
+    if (scores?.hunger) scoreParts.push(`Hunger: ${scores.hunger}/5`);
+    const scoresLine = scoreParts.length > 0 ? `[scores: ${scoreParts.join(' · ')}] ` : '';
 
-    if (aptitudeScore !== undefined && aptitudeScore !== null && aptitudeScore !== '') {
-      const colLetter = colToLetter(22); // Aptitude Score = col 22
-      updates.push({ range: `'${sheetName}'!${colLetter}${row}`, values: [[aptitudeScore]] });
-    }
+    const timestamp = new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const prefix    = stage ? `[${stage} — ${timestamp} — ${session.name}]` : `[${timestamp} — ${session.name}]`;
+    const entry     = `${prefix} ${scoresLine}${notes || ''}`.trim();
 
-    if (updates.length === 0) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: 'No data to update' }) };
-    }
+    const colLetter   = colToLetter(20); // Remarks = col 20
+    const range       = `'${sheetName}'!${colLetter}${row}`;
+    const existing    = await sheets.spreadsheets.values.get({ spreadsheetId: process.env.SHEET_ID, range });
+    const existingVal = existing.data.values?.[0]?.[0] || '';
+    updates.push({ range, values: [[existingVal ? `${existingVal}\n\n${entry}` : entry]] });
 
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: process.env.SHEET_ID,

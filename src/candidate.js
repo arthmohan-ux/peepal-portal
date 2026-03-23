@@ -329,22 +329,28 @@ function buildPipelineDatesTable(c, pipeline) {
 // ── PARSE FEEDBACK ENTRIES from Remarks ──
 function parseFeedbackEntries(remarks) {
   if (!remarks) return [];
-  // Format: [stage — DD Mon YYYY, HH:MM — Name] notes
   const entries = [];
-  const regex = /\[([^\]]+)\]\s*/g;
-  const parts = remarks.split(/(?=\[[^\]]+\])/);
+  const parts = remarks.split(/(?=\[[^\]]+\] (?:\[scores:|\w))/);
   for (const part of parts) {
-    const match = part.match(/^\[([^\]]+)\]([\s\S]*)/);
+    const match = part.match(/^\[([^\]]+)\]\s*(?:\[scores:([^\]]+)\])?\s*([\s\S]*)/);
     if (!match) continue;
-    const header = match[1]; // e.g. "manager_round — 23 Mar 2026, 10:17 — Dev User"
-    const notes  = match[2].trim();
+    const header    = match[1];
+    const scoresRaw = match[2]?.trim() || '';
+    const notes     = match[3]?.trim() || '';
     const headerParts = header.split(' — ');
     const stage  = headerParts[0]?.trim().replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Note';
     const date   = headerParts[1]?.trim() || '';
     const author = headerParts[2]?.trim() || '';
-    entries.push({ stage, date, author, notes });
+    const scores = {};
+    if (scoresRaw) {
+      scoresRaw.split('·').forEach(s => {
+        const [k, v] = s.split(':').map(x => x.trim());
+        if (k && v) scores[k] = v;
+      });
+    }
+    entries.push({ stage, date, author, notes, scores });
   }
-  return entries.reverse(); // most recent first
+  return entries.reverse();
 }
 
 // ── FEEDBACK FORM ──
@@ -378,12 +384,19 @@ function buildFeedbackForm(c) {
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
             <span style="font-size:11px;font-weight:800;color:#4338CA;text-transform:uppercase;letter-spacing:0.5px">${escHtml(e.stage)}</span>
             <div style="display:flex;gap:10px;align-items:center">
-              <span style="font-size:10px;color:var(--slate-400);font-weight:600">${escHtml(e.author)}</span>
+              <span style="font-size:10px;font-weight:700;color:var(--slate-600)">by ${escHtml(e.author)}</span>
               <span style="font-size:10px;color:var(--slate-300)">·</span>
               <span style="font-size:10px;color:var(--slate-400)">${escHtml(e.date)}</span>
             </div>
           </div>
-          <p style="font-size:12px;line-height:1.6;color:var(--slate-700);margin:0;white-space:pre-wrap">${escHtml(e.notes)}</p>
+          ${Object.keys(e.scores).length > 0 ? `
+          <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+            ${Object.entries(e.scores).map(([k,v]) => `
+              <span style="background:#EEF2FF;border-radius:6px;padding:3px 10px;font-size:10px;font-weight:800;color:#4338CA">
+                ${escHtml(k)}: ${escHtml(v)}
+              </span>`).join('')}
+          </div>` : ''}
+          ${e.notes ? `<p style="font-size:12px;line-height:1.6;color:var(--slate-700);margin:0;white-space:pre-wrap">${escHtml(e.notes)}</p>` : ''}
         </div>`).join('')}
     </div>` : '';
 
