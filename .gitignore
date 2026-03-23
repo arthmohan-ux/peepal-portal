@@ -17,3 +17,6 @@ Thumbs.db
 *.json
 !package.json
 !vercel.json
+
+# Local Netlify folder
+.netlify

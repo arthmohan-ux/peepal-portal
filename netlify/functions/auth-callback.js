@@ -76,7 +76,7 @@ exports.handler = async (event) => {
       statusCode: 302,
       headers: {
         Location: redirectTo,
-        'Set-Cookie': `peepal_session=${session}; HttpOnly; Secure; SameSite=Lax; Max-Age=28800; Path=/`,
+        'Set-Cookie': `peepal_session=${session}; HttpOnly; ${process.env.NEXTAUTH_URL?.startsWith('https') ? 'Secure; ' : ''}SameSite=Lax; Max-Age=28800; Path=/`,
       },
       body: '',
     };
