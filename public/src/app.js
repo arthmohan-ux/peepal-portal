@@ -92,14 +92,12 @@ async function loadCandidates() {
     // ── Auto-open candidate from URL param ──
     const urlParams = new URLSearchParams(window.location.search);
     const candidateRow = parseInt(urlParams.get('candidate'));
+    const tabParam = urlParams.get('tab') || 'info';
     if (candidateRow && !isNaN(candidateRow)) {
       const found = allCandidates.find(c => c._row === candidateRow);
       if (found) {
-        // Open on Feedback & Scores tab
-        window.__autoOpenTab = 'feedback';
+        window.__autoOpenTab = tabParam;
         openCandidatePanelByRow(candidateRow);
-        // Clean URL without reloading
-        window.history.replaceState({}, '', '/dashboard');
       }
     }
 

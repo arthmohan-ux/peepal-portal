@@ -69,12 +69,13 @@ function openCandidatePanelByRow(rowNum) {
   const c = candidates.find(x => x._row === rowNum);
   if (!c) return;
   currentCandidate = c;
-  // Use auto-open tab if set (e.g. from shared link), otherwise default to info
   activeTab = window.__autoOpenTab || 'info';
-  window.__autoOpenTab = null; // clear after use
+  window.__autoOpenTab = null;
   renderPanel(c);
   document.getElementById('candidate-panel-overlay').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
+  // Update URL to reflect open candidate
+  window.history.replaceState({}, '', `/dashboard?candidate=${rowNum}&tab=${activeTab}`);
 }
 
 function closeCandidatePanel(e) {
@@ -86,6 +87,7 @@ function forceClosePanel() {
   document.getElementById('candidate-panel-overlay').classList.add('hidden');
   document.body.style.overflow = '';
   currentCandidate = null;
+  window.history.replaceState({}, '', '/dashboard');
 }
 
 // ── RENDER PANEL ──
@@ -161,12 +163,6 @@ function renderPanel(c) {
           ${c.resumeLink ? `<a href="${escHtml(c.resumeLink)}" target="_blank" class="btn-manage" style="text-decoration:none">📄 Resume</a>` : ''}
           ${c.linkedin   ? `<a href="${escHtml(c.linkedin)}"   target="_blank" class="btn-manage" style="text-decoration:none">🔗 LinkedIn</a>` : ''}
         </div>
-
-        ${c.remarks ? `
-        <div style="margin-top:20px">
-          <div class="feedback-section-title">Remarks / Notes</div>
-          <div class="remarks-block">${escHtml(c.remarks)}</div>
-        </div>` : ''}
       </div>
 
       <!-- ── PIPELINE TAB ── -->
@@ -199,6 +195,9 @@ function switchTab(tab) {
   });
   const target = document.getElementById(`tab-${tab}`);
   if (target) target.classList.add('active');
+  if (currentCandidate) {
+    window.history.replaceState({}, '', `/dashboard?candidate=${currentCandidate._row}&tab=${tab}`);
+  }
 }
 
 // ── INFO CARD HELPER ──
