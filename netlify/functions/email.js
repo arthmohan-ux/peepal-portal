@@ -1,15 +1,13 @@
 // netlify/functions/email.js
-// POST — sends dossier email via Gmail API
+// POST — sends dossier email via SendGrid
 
 const { jwtVerify } = require('jose');
-const { google }    = require('googleapis');
 
 const SECRET = new TextEncoder().encode(process.env.SESSION_SECRET);
-
 const IS_DEV = process.env.NEXTAUTH_URL?.includes('localhost');
 
 async function getSession(event) {
-  if (IS_DEV) return { email: 'dev@peepalconsulting.com', name: 'Dev User' };
+  if (IS_DEV) return { email: 'arth.mohan@peepalconsulting.com', name: 'Arth Mohan' };
   const cookie = event.headers.cookie || '';
   const match  = cookie.match(/peepal_session=([^;]+)/);
   if (!match) return null;
@@ -17,18 +15,6 @@ async function getSession(event) {
     const { payload } = await jwtVerify(match[1], SECRET);
     return payload;
   } catch { return null; }
-}
-
-function getGmailClient() {
-  const auth = new google.auth.GoogleAuth({
-    credentials: {
-      client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      private_key:  process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    },
-    scopes: ['https://www.googleapis.com/auth/gmail.send'],
-    subject: process.env.GMAIL_SENDER,
-  });
-  return google.gmail({ version: 'v1', auth });
 }
 
 const DEPT_ACCENT = {
@@ -113,7 +99,7 @@ exports.handler = async (event) => {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  const { candidate, stage, feedback, scores, to, cc } = JSON.parse(event.body || '{}');
+  const { candidate, stage, subject: customSubject, customMsg, includeProfile, includeFeedback, includeScores, to, cc } = JSON.parse(event.body || '{}');
 
   if (!candidate || !stage || !to || to.length === 0) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing required fields' }) };
@@ -121,22 +107,37 @@ exports.handler = async (event) => {
 
   try {
     const { subject, html } = buildEmailHtml({
-      candidate, stage, feedback, scores,
+      candidate, stage, feedback: customMsg, scores: null,
       sentBy: session.name || session.email,
     });
 
-    const gmail   = getGmailClient();
-    const encoded = encodeEmail({ to, cc, subject, html });
+    const finalSubject = customSubject || subject;
+    const fromEmail = process.env.GMAIL_SENDER || 'arth.mohan@peepalconsulting.com';
 
-    await gmail.users.messages.send({
-      userId: 'me',
-      requestBody: { raw: encoded },
+    // Send via SendGrid
+    const sgRes = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: to.map(email => ({ email })), ...(cc?.length ? { cc: cc.map(email => ({ email })) } : {}) }],
+        from: { email: fromEmail, name: 'Peepal Hiring Portal' },
+        subject: finalSubject,
+        content: [{ type: 'text/html', value: html }],
+      }),
     });
+
+    if (!sgRes.ok) {
+      const errText = await sgRes.text();
+      throw new Error(`SendGrid error ${sgRes.status}: ${errText}`);
+    }
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ success: true, sentTo: to, sentCc: cc || [], subject }),
+      body: JSON.stringify({ success: true, sentTo: to, sentCc: cc || [], subject: finalSubject }),
     };
 
   } catch (err) {
