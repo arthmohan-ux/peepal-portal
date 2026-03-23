@@ -1,6 +1,49 @@
 // src/candidate.js
 // Candidate side panel — full info view, pipeline timeline, scores, feedback form
 
+// ── ROLE-BASED ACCESS CONFIG ──
+const ACCESS = {
+  admins:     ['arth.mohan@peepalconsulting.com'],
+  recruiters: ['ramya.h@peepalconsulting.com','krishna.kumar@peepalconsulting.com','aditi.kaul@peepalconsulting.com','subhiksha.k@peepalconsulting.com','renjith.k@peepalconsulting.com'],
+  managers:   ['ravi.kant.sharma@peepalconsulting.com','ambika.s@peepalconsulting.com','shiwala.dubey@peepalconsulting.com','parv.u@peepalconsulting.com','saketh.a@peepalconsulting.com','ramakrishna.d@peepalconsulting.com','rohan.p@peepalconsulting.com','champa.v@peepalconsulting.com'],
+  kaveri:     ['kaveri.karnam@peepalconsulting.com'],
+  vijay:      ['vijay@peepalconsulting.com'],
+};
+
+// Manager first-name → email map for matching sheet "Manager" column
+const MANAGER_NAME_EMAIL = {
+  'Ravikant':  'ravi.kant.sharma@peepalconsulting.com',
+  'Ambika':    'ambika.s@peepalconsulting.com',
+  'Shiwala':   'shiwala.dubey@peepalconsulting.com',
+  'Parv':      'parv.u@peepalconsulting.com',
+  'Saketh':    'saketh.a@peepalconsulting.com',
+  'Ramakrishna': 'ramakrishna.d@peepalconsulting.com',
+  'Rohan':     'rohan.p@peepalconsulting.com',
+  'Champa':    'champa.v@peepalconsulting.com',
+};
+
+function getUserRole(email) {
+  if (!email) return 'viewer';
+  if (ACCESS.admins.includes(email))     return 'admin';
+  if (ACCESS.recruiters.includes(email)) return 'recruiter';
+  if (ACCESS.kaveri.includes(email))     return 'kaveri';
+  if (ACCESS.vijay.includes(email))      return 'vijay';
+  if (ACCESS.managers.includes(email))   return 'manager';
+  return 'viewer';
+}
+
+function canWriteFeedback(email, candidate, stage) {
+  const role = getUserRole(email);
+  if (role === 'admin' || role === 'recruiter') return true;
+  if (role === 'kaveri') return stage === 'kaveri_round';
+  if (role === 'vijay')  return stage === 'vijay_round';
+  if (role === 'manager') {
+    const managerEmail = MANAGER_NAME_EMAIL[candidate.manager];
+    return managerEmail === email && stage === 'manager_round';
+  }
+  return false;
+}
+
 // ── KNOWN PEOPLE for recipient picker ──
 const KNOWN_PEOPLE = [
   { name: 'Ramya',     email: 'ramya.h@peepalconsulting.com' },
@@ -283,71 +326,126 @@ function buildPipelineDatesTable(c, pipeline) {
     </div>`;
 }
 
+// ── PARSE FEEDBACK ENTRIES from Remarks ──
+function parseFeedbackEntries(remarks) {
+  if (!remarks) return [];
+  // Format: [stage — DD Mon YYYY, HH:MM — Name] notes
+  const entries = [];
+  const regex = /\[([^\]]+)\]\s*/g;
+  const parts = remarks.split(/(?=\[[^\]]+\])/);
+  for (const part of parts) {
+    const match = part.match(/^\[([^\]]+)\]([\s\S]*)/);
+    if (!match) continue;
+    const header = match[1]; // e.g. "manager_round — 23 Mar 2026, 10:17 — Dev User"
+    const notes  = match[2].trim();
+    const headerParts = header.split(' — ');
+    const stage  = headerParts[0]?.trim().replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Note';
+    const date   = headerParts[1]?.trim() || '';
+    const author = headerParts[2]?.trim() || '';
+    entries.push({ stage, date, author, notes });
+  }
+  return entries.reverse(); // most recent first
+}
+
 // ── FEEDBACK FORM ──
 function buildFeedbackForm(c) {
-  const pipeline = window.ROLE_PIPELINE[c.role] || [];
-  const stageOptions = pipeline
-    .filter(s => s !== 'Screening')
+  const userEmail = window.__userEmail || '';
+  const pipeline  = window.ROLE_PIPELINE[c.role] || [];
+
+  // Interview rounds only — no Aptitude, no Screening
+  const INTERVIEW_ROUNDS = ['Assessment', 'AI Interview', 'Manager Round', 'Kaveri Round', 'Vijay Round'];
+  const availableRounds = pipeline.filter(s => INTERVIEW_ROUNDS.includes(s));
+
+  const stageOptions = availableRounds
     .map(s => `<option value="${s.toLowerCase().replace(/\s+/g,'_')}">${escHtml(s)}</option>`)
     .join('');
 
-  return `
-    <div>
-      <div style="margin-bottom:14px">
-        <div class="feedback-section-title">Round</div>
-        <select id="feedback-stage" class="email-stage-select">
-          ${stageOptions}
-        </select>
-      </div>
+  if (availableRounds.length === 0) {
+    return `<div style="padding:24px;text-align:center;color:var(--slate-400);font-size:13px">No interview rounds in this candidate's pipeline.</div>`;
+  }
 
-      <div style="margin-bottom:14px">
-        <div class="feedback-section-title">Scores (out of 5)</div>
-        <div class="score-row">
-          <span class="score-label">Business Acumen</span>
-          <div class="score-input-wrap">
-            <input type="number" id="score-acumen" class="score-field" value="" min="0" max="5" placeholder="—">
-            <span class="score-max">/ 5</span>
+  const firstStage = availableRounds[0]?.toLowerCase().replace(/\s+/g,'_') || '';
+  const canWrite   = canWriteFeedback(userEmail, c, firstStage);
+
+  // Parse existing feedback entries
+  const entries    = parseFeedbackEntries(c.remarks);
+
+  const historyHtml = entries.length > 0 ? `
+    <div style="margin-top:28px">
+      <div class="feedback-section-title">Feedback History</div>
+      ${entries.map(e => `
+        <div style="background:white;border:1.5px solid var(--slate-200);border-radius:12px;padding:14px 16px;margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+            <span style="font-size:11px;font-weight:800;color:#4338CA;text-transform:uppercase;letter-spacing:0.5px">${escHtml(e.stage)}</span>
+            <div style="display:flex;gap:10px;align-items:center">
+              <span style="font-size:10px;color:var(--slate-400);font-weight:600">${escHtml(e.author)}</span>
+              <span style="font-size:10px;color:var(--slate-300)">·</span>
+              <span style="font-size:10px;color:var(--slate-400)">${escHtml(e.date)}</span>
+            </div>
           </div>
-        </div>
-        <div class="score-row">
-          <span class="score-label">Intelligence</span>
-          <div class="score-input-wrap">
-            <input type="number" id="score-intel" class="score-field" value="" min="0" max="5" placeholder="—">
-            <span class="score-max">/ 5</span>
-          </div>
-        </div>
-        <div class="score-row">
-          <span class="score-label">Hunger / Drive</span>
-          <div class="score-input-wrap">
-            <input type="number" id="score-hunger" class="score-field" value="" min="0" max="5" placeholder="—">
-            <span class="score-max">/ 5</span>
-          </div>
+          <p style="font-size:12px;line-height:1.6;color:var(--slate-700);margin:0;white-space:pre-wrap">${escHtml(e.notes)}</p>
+        </div>`).join('')}
+    </div>` : '';
+
+  const writeForm = canWrite ? `
+    <div style="margin-bottom:14px">
+      <div class="feedback-section-title">Round</div>
+      <select id="feedback-stage" class="email-stage-select" onchange="onFeedbackStageChange(this.value, '${escHtml(JSON.stringify(c).replace(/'/g,"&#39;"))}')">
+        ${stageOptions}
+      </select>
+    </div>
+
+    <div style="margin-bottom:14px" id="scores-section">
+      <div class="feedback-section-title">Scores (out of 5)</div>
+      <div class="score-row">
+        <span class="score-label">Business Acumen</span>
+        <div class="score-input-wrap">
+          <input type="number" id="score-acumen" class="score-field" min="0" max="5" placeholder="—">
+          <span class="score-max">/ 5</span>
         </div>
       </div>
-
-      <div style="margin-bottom:6px">
-        <div class="feedback-section-title">Notes / Feedback</div>
-        <textarea
-          id="feedback-notes"
-          class="feedback-textarea"
-          placeholder="Write your observations, strengths, concerns..."
-          oninput="updateWordCount()"
-        ></textarea>
-        <div class="word-count" id="word-count">0 words</div>
+      <div class="score-row">
+        <span class="score-label">Intelligence</span>
+        <div class="score-input-wrap">
+          <input type="number" id="score-intel" class="score-field" min="0" max="5" placeholder="—">
+          <span class="score-max">/ 5</span>
+        </div>
       </div>
+      <div class="score-row">
+        <span class="score-label">Hunger / Drive</span>
+        <div class="score-input-wrap">
+          <input type="number" id="score-hunger" class="score-field" min="0" max="5" placeholder="—">
+          <span class="score-max">/ 5</span>
+        </div>
+      </div>
+    </div>
 
-      <div id="feedback-msg"></div>
+    <div style="margin-bottom:6px">
+      <div class="feedback-section-title">Notes / Feedback</div>
+      <textarea
+        id="feedback-notes"
+        class="feedback-textarea"
+        placeholder="Write your observations, strengths, concerns..."
+        oninput="updateWordCount()"
+      ></textarea>
+      <div class="word-count" id="word-count">0 words</div>
+    </div>
 
-      <button class="btn-save-feedback" id="btn-save-feedback" onclick="saveFeedback()">
-        💾 Save to Sheet
-      </button>
+    <div id="feedback-msg"></div>
 
-      ${c.remarks ? `
-      <div style="margin-top:20px">
-        <div class="feedback-section-title">Existing Notes on File</div>
-        <div class="remarks-block">${escHtml(c.remarks)}</div>
-      </div>` : ''}
+    <button class="btn-save-feedback" id="btn-save-feedback" onclick="saveFeedback()">
+      💾 Save Feedback
+    </button>` : `
+    <div style="background:var(--slate-50);border-radius:10px;padding:16px;text-align:center;color:var(--slate-400);font-size:12px;font-weight:600">
+      You can only add feedback for rounds assigned to you.
     </div>`;
+
+  return `<div>${writeForm}${historyHtml}</div>`;
+}
+
+function onFeedbackStageChange(stage, candidateJson) {
+  // No scores section needed — scores removed as requested
+}
 }
 
 function updateWordCount() {
@@ -370,6 +468,13 @@ async function saveFeedback() {
   const btn     = document.getElementById('btn-save-feedback');
   const msgEl   = document.getElementById('feedback-msg');
 
+  // Role check
+  const userEmail = window.__userEmail || '';
+  if (!canWriteFeedback(userEmail, currentCandidate, stage)) {
+    if (msgEl) msgEl.innerHTML = '<div class="send-error">You don\'t have permission to log feedback for this round.</div>';
+    return;
+  }
+
   if (!notes && !acumen && !intel && !hunger) {
     if (msgEl) msgEl.innerHTML = '<div class="send-error">Please add notes or scores before saving.</div>';
     return;
@@ -384,11 +489,10 @@ async function saveFeedback() {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
-        row:          currentCandidate._row,
-        stage:        stage,
-        notes:        notes,
-        aptitudeScore: stage === 'aptitude' ? acumen : undefined,
-        scores:        { acumen, intel, hunger },
+        row:    currentCandidate._row,
+        stage,
+        notes,
+        scores: { acumen, intel, hunger },
       }),
     });
 
@@ -396,20 +500,25 @@ async function saveFeedback() {
     const data = await res.json();
 
     if (data.success) {
-      if (msgEl) msgEl.innerHTML = '<div class="send-success">✓ Saved to sheet</div>';
-      // Refresh candidate data
+      if (msgEl) msgEl.innerHTML = '<div class="send-success">✓ Saved successfully</div>';
       await window.loadCandidates();
-      // Re-find updated candidate
       const updated = window.allCandidates().find(x => x._row === currentCandidate._row);
-      if (updated) { currentCandidate = updated; }
-      btn.textContent = '💾 Save to Sheet';
+      if (updated) {
+        currentCandidate = updated;
+        // Refresh just the history section
+        const historyContainer = document.querySelector('#tab-feedback');
+        if (historyContainer) {
+          historyContainer.innerHTML = buildFeedbackForm(updated);
+        }
+      }
+      btn.textContent = '💾 Save Feedback';
       btn.disabled    = false;
     } else {
       throw new Error(data.error || 'Unknown error');
     }
   } catch (err) {
     if (msgEl) msgEl.innerHTML = `<div class="send-error">Error: ${escHtml(err.message)}</div>`;
-    btn.textContent = '💾 Save to Sheet';
+    btn.textContent = '💾 Save Feedback';
     btn.disabled    = false;
   }
 }
@@ -612,3 +721,5 @@ window.toggleRecipient         = toggleRecipient;
 window.addCustomRecipient      = addCustomRecipient;
 window.updateEmailPreview      = updateEmailPreview;
 window.copyCandidateLink       = copyCandidateLink;
+window.onFeedbackStageChange   = onFeedbackStageChange;
+window.getUserRole             = getUserRole;

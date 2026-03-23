@@ -50,10 +50,21 @@ let allCandidates = [];
 let filteredCandidates = [];
 
 // ── INIT ──
-document.addEventListener('DOMContentLoaded', () => {
-  rebuildStatusDropdown(null); // populate full status list on load
-  loadCandidates();
+document.addEventListener('DOMContentLoaded', async () => {
+  rebuildStatusDropdown(null);
   setupRoleFilter();
+  // Fetch logged-in user info for role-based access
+  try {
+    const res = await fetch('/api/me');
+    if (res.ok) {
+      const user = await res.json();
+      window.__userEmail = user.email;
+      window.__userName  = user.name;
+      const nameEl = document.getElementById('user-name');
+      if (nameEl) nameEl.textContent = user.name || user.email;
+    }
+  } catch {}
+  loadCandidates();
 });
 
 // ── LOAD FROM API ──
