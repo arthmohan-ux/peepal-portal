@@ -327,23 +327,24 @@ function buildPipelineDatesTable(c, pipeline) {
 
 // ── PARSE FEEDBACK ENTRIES from Remarks ──
 function parseFeedbackEntries(remarks) {
-  if (!remarks) return [];
+  if (!remarks) return { entries: [], legacy: '' };
   const entries = [];
-  // Split on entries that start with [header] pattern
-  // Each entry starts with [stage — date — author] optionally followed by [scores: ...]
   const parts = remarks.split(/\n\n(?=\[)/);
+  let legacy = '';
+
   for (const part of parts) {
     const trimmed = part.trim();
-    if (!trimmed.startsWith('[')) continue;
+    if (!trimmed.startsWith('[')) {
+      // Legacy plain remark — not in portal format
+      legacy += (legacy ? '\n' : '') + trimmed;
+      continue;
+    }
 
-    // Match: [header] optional [scores: ...] rest
     const headerMatch = trimmed.match(/^\[([^\]]+)\]/);
-    if (!headerMatch) continue;
+    if (!headerMatch) { legacy += (legacy ? '\n' : '') + trimmed; continue; }
 
     const header = headerMatch[1];
     const rest   = trimmed.slice(headerMatch[0].length).trim();
-
-    // Check if scores block follows
     const scoresMatch = rest.match(/^\[scores:([^\]]+)\]\s*/);
     const scoresRaw   = scoresMatch?.[1]?.trim() || '';
     const notes       = scoresMatch ? rest.slice(scoresMatch[0].length).trim() : rest;
@@ -360,10 +361,9 @@ function parseFeedbackEntries(remarks) {
         if (k && v) scores[k] = v;
       });
     }
-
     entries.push({ stage, date, author, notes, scores });
   }
-  return entries.reverse();
+  return { entries: entries.reverse(), legacy };
 }
 
 // ── FEEDBACK FORM ──
@@ -387,7 +387,13 @@ function buildFeedbackForm(c) {
   const canWrite   = canWriteFeedback(userEmail, c, firstStage);
 
   // Parse existing feedback entries
-  const entries    = parseFeedbackEntries(c.remarks);
+  const { entries, legacy } = parseFeedbackEntries(c.remarks);
+
+  const legacyHtml = legacy ? `
+    <div style="margin-top:20px">
+      <div class="feedback-section-title">Previous Notes</div>
+      <div style="background:#FFFBEB;border-left:3px solid #FCD34D;border-radius:0 8px 8px 0;padding:12px 14px;font-size:12px;line-height:1.6;color:var(--slate-700);white-space:pre-wrap">${escHtml(legacy)}</div>
+    </div>` : '';
 
   const historyHtml = entries.length > 0 ? `
     <div style="margin-top:28px">
@@ -466,7 +472,7 @@ function buildFeedbackForm(c) {
       You can only add feedback for rounds assigned to you.
     </div>`;
 
-  return `<div>${writeForm}${historyHtml}</div>`;
+  return `<div>${writeForm}${legacyHtml}${historyHtml}</div>`;
 }
 
 function onFeedbackStageChange(stage, candidateJson) {
@@ -667,9 +673,10 @@ function buildEmailPreviewHtml(c, stage, customMsg, includeProfile, includeFeedb
         </tr>`).join('')}
     </table>` : '';
 
-  const feedbackEntries = parseFeedbackEntries(c.remarks || '');
-  const feedbackSection = includeFeedback && feedbackEntries.length > 0 ? `
+  const { entries: feedbackEntries, legacy: legacyNote } = parseFeedbackEntries(c.remarks || '');
+  const feedbackSection = includeFeedback && (feedbackEntries.length > 0 || legacyNote) ? `
     <h3 style="font-size:11px;font-weight:800;color:${accent};text-transform:uppercase;letter-spacing:1px;margin:0 0 10px">Feedback History</h3>
+    ${legacyNote ? `<div style="background:#FFFBEB;border-left:3px solid #FCD34D;border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:10px;font-size:11px;color:#334155;line-height:1.6">${legacyNote}</div>` : ''}
     ${feedbackEntries.map(e => `
       <div style="background:#f8fafc;border-radius:8px;padding:12px;border-left:3px solid ${accent};margin-bottom:10px;">
         <div style="display:flex;justify-content:space-between;margin-bottom:6px">
