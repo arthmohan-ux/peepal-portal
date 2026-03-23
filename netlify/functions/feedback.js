@@ -85,7 +85,38 @@ exports.handler = async (event) => {
     const existingVal = existing.data.values?.[0]?.[0] || '';
     updates.push({ range, values: [[existingVal ? `${existingVal}\n\n${entry}` : entry]] });
 
-    await sheets.spreadsheets.values.batchUpdate({
+    // Write to Feedback Log sheet
+    const logSheet = '📝 Feedback Log';
+    const [nameRes, roleRes, deptRes] = await Promise.all([
+      sheets.spreadsheets.values.get({ spreadsheetId: process.env.SHEET_ID, range: `'${sheetName}'!B${row}` }),
+      sheets.spreadsheets.values.get({ spreadsheetId: process.env.SHEET_ID, range: `'${sheetName}'!P${row}` }),
+      sheets.spreadsheets.values.get({ spreadsheetId: process.env.SHEET_ID, range: `'${sheetName}'!O${row}` }),
+    ]);
+    const candidateName = nameRes.data.values?.[0]?.[0] || '';
+    const candidateRole = roleRes.data.values?.[0]?.[0] || '';
+    const candidateDept = deptRes.data.values?.[0]?.[0] || '';
+    const stageLabel    = stage ? stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '';
+
+    // Append row to Feedback Log (separate from batchUpdate so it always appends)
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: process.env.SHEET_ID,
+      range: `'${logSheet}'!A:K`,
+      valueInputOption: 'USER_ENTERED',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: { values: [[
+        timestamp,
+        session.name || session.email,
+        candidateName,
+        candidateRole,
+        candidateDept,
+        stageLabel,
+        notes || '',
+        scores?.acumen || '',
+        scores?.intel  || '',
+        scores?.hunger || '',
+        '',
+      ]] },
+    });
       spreadsheetId: process.env.SHEET_ID,
       requestBody: { valueInputOption: 'USER_ENTERED', data: updates },
     });
