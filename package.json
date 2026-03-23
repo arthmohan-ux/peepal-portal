@@ -9,5 +9,8 @@
   "dependencies": {
     "googleapis": "^140.0.0",
     "jose": "^5.2.0"
+  },
+  "devDependencies": {
+    "dotenv": "^17.3.1"
   }
 }

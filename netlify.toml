@@ -3,11 +3,16 @@
   functions = "netlify/functions"
 
 [build.environment]
-  SECRETS_SCAN_ENABLED = "false"
+  SECRETS_SCAN_OMIT_PATHS = ".env.example,src/candidate.js,src/auth.js,netlify/functions/candidates.js,netlify/functions/feedback.js"
 
 [dev]
   port = 3000
   targetPort = 8888
+
+[[redirects]]
+  from = "/api/me"
+  to = "/.netlify/functions/me"
+  status = 200
 
 [[redirects]]
   from = "/api/auth/login"
