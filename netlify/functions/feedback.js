@@ -52,10 +52,28 @@ exports.handler = async (event) => {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  const { row, stage, notes, scores } = JSON.parse(event.body || '{}');
+  const { row, stage, notes, scores, statusUpdate } = JSON.parse(event.body || '{}');
 
   if (!row || row < 4) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid row number' }) };
+  }
+
+  // Handle status update only
+  if (statusUpdate) {
+    const sheetName = process.env.MASTER_SHEET_NAME || 'Master Tracker';
+    try {
+      const sheets = getSheetClient();
+      const colLetter = colToLetter(19); // Status = col 19
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: process.env.SHEET_ID,
+        range: `'${sheetName}'!${colLetter}${row}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [[statusUpdate]] },
+      });
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
+    } catch (err) {
+      return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
+    }
   }
 
   if (!notes && !scores?.acumen && !scores?.intel && !scores?.hunger) {

@@ -169,6 +169,7 @@ function renderPanel(c) {
       <div id="tab-pipeline" class="panel-section ${activeTab === 'pipeline' ? 'active' : ''}">
         ${buildPipelineTimeline(c, pipeline)}
         ${buildPipelineDatesTable(c, pipeline)}
+        ${buildPipelineActions(c, pipeline)}
       </div>
 
       <!-- ── FEEDBACK TAB ── -->
@@ -323,6 +324,119 @@ function buildPipelineDatesTable(c, pipeline) {
         ${rows}
       </table>
     </div>`;
+}
+
+// ── PIPELINE ACTIONS ──
+function buildPipelineActions(c, pipeline) {
+  const userEmail = window.__userEmail || '';
+  const currentStatus = c.status || '';
+
+  // Check if user can change status for this candidate
+  const role = getUserRole(userEmail);
+  let canChangeStatus = false;
+  if (role === 'admin' || role === 'recruiter') {
+    canChangeStatus = true;
+  } else if (role === 'manager') {
+    const managerEmail = MANAGER_NAME_EMAIL[c.manager];
+    canChangeStatus = managerEmail === userEmail;
+  } else if (role === 'kaveri') {
+    canChangeStatus = pipeline.includes('Kaveri Round');
+  } else if (role === 'vijay') {
+    canChangeStatus = pipeline.includes('Vijay Round');
+  }
+
+  if (!canChangeStatus) return '';
+
+  // Determine current stage and next stage
+  const STAGE_PENDING = {
+    'Screening':     'Aptitude Pending',
+    'Aptitude':      'Manager Round Pending',
+    'Assessment':    'Manager Round Pending',
+    'AI Interview':  'Manager Round Pending',
+    'Manager Round': 'Kaveri Round Pending',
+    'Kaveri Round':  'Vijay Round Pending',
+    'Vijay Round':   'Final Select',
+  };
+  const STAGE_REJECT = {
+    'Screening':     'Screen Reject',
+    'Aptitude':      'Aptitude Reject',
+    'Assessment':    'Assessment Reject',
+    'AI Interview':  'AI Interview Reject',
+    'Manager Round': 'Manager Round Reject',
+    'Kaveri Round':  'Kaveri Reject',
+    'Vijay Round':   'Vijay Reject',
+  };
+
+  // Figure out current stage from status
+  const statusToStage = {
+    'Aptitude Pending': 'Aptitude', 'Aptitude Reject': 'Aptitude', 'Aptitude Select': 'Aptitude', 'Test Reject': 'Aptitude',
+    'Assessment Pending': 'Assessment', 'Assessment Reject': 'Assessment', 'Assesment Under Review': 'Assessment',
+    'AI Interview Pending': 'AI Interview', 'AI Interview Reject': 'AI Interview',
+    'Manager Round Pending': 'Manager Round', 'Manager Round Reject': 'Manager Round',
+    'Kaveri Round Pending': 'Kaveri Round', 'Kaveri Feedback Pending': 'Kaveri Round', 'Kaveri Reject': 'Kaveri Round',
+    'Vijay Round Pending': 'Vijay Round', 'Vijay Reject': 'Vijay Round',
+    'Screen Reject': 'Screening', 'Hold': 'Screening', 'Drop': 'Screening',
+  };
+
+  const currentStage = statusToStage[currentStatus] || pipeline[0] || 'Screening';
+  const currentStageIdx = pipeline.indexOf(currentStage);
+  const nextStage = currentStageIdx >= 0 && currentStageIdx < pipeline.length - 1
+    ? pipeline[currentStageIdx + 1] : null;
+  const nextStatus = nextStage ? (STAGE_PENDING[nextStage] || nextStage) : 'Final Select';
+  const rejectStatus = STAGE_REJECT[currentStage] || 'Drop';
+
+  const isTerminal = ['Final Select', 'Offered', 'Joined', 'Drop'].includes(currentStatus);
+
+  return `
+    <div style="margin-top:24px">
+      <div class="feedback-section-title">Pipeline Actions</div>
+      <div style="background:var(--slate-50);border-radius:12px;padding:16px">
+        <div style="font-size:11px;color:var(--slate-500);margin-bottom:12px">
+          Current status: <strong style="color:var(--slate-700)">${escHtml(currentStatus || '—')}</strong>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${!isTerminal && nextStage ? `
+          <button onclick="updateCandidateStatus(${c._row}, '${escHtml(nextStatus)}')"
+            style="padding:8px 16px;background:#4338CA;color:white;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">
+            → Move to ${escHtml(nextStage)}
+          </button>` : ''}
+          ${!isTerminal ? `
+          <button onclick="updateCandidateStatus(${c._row}, '${escHtml(rejectStatus)}')"
+            style="padding:8px 16px;background:#FEE2E2;color:#B91C1C;border:1.5px solid #FECACA;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">
+            ✗ Reject at ${escHtml(currentStage)}
+          </button>` : ''}
+          <button onclick="updateCandidateStatus(${c._row}, 'Drop')"
+            style="padding:8px 16px;background:var(--slate-100);color:var(--slate-500);border:1.5px solid var(--slate-200);border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">
+            ⊘ Drop
+          </button>
+        </div>
+        <div id="status-update-msg" style="margin-top:10px"></div>
+      </div>
+    </div>`;
+}
+
+async function updateCandidateStatus(rowNum, newStatus) {
+  const msgEl = document.getElementById('status-update-msg');
+  if (msgEl) msgEl.innerHTML = '<span style="font-size:11px;color:var(--slate-400)">Updating...</span>';
+
+  try {
+    const res = await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ row: rowNum, statusUpdate: newStatus }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (msgEl) msgEl.innerHTML = `<span style="font-size:11px;color:#166534;font-weight:700">✓ Status updated to "${newStatus}"</span>`;
+      await window.loadCandidates();
+      const updated = window.allCandidates().find(x => x._row === rowNum);
+      if (updated) { currentCandidate = updated; renderPanel(updated); switchTab('pipeline'); }
+    } else {
+      throw new Error(data.error || 'Unknown error');
+    }
+  } catch (err) {
+    if (msgEl) msgEl.innerHTML = `<span style="font-size:11px;color:#B91C1C;font-weight:700">Error: ${escHtml(err.message)}</span>`;
+  }
 }
 
 // ── PARSE FEEDBACK ENTRIES from Remarks ──
@@ -866,5 +980,6 @@ window.toggleRecipient         = toggleRecipient;
 window.addCustomRecipient      = addCustomRecipient;
 window.updateEmailPreview      = updateEmailPreview;
 window.copyCandidateLink       = copyCandidateLink;
-window.onFeedbackStageChange   = onFeedbackStageChange;
+window.updateCandidateStatus    = updateCandidateStatus;
+window.onFeedbackStageChange     = onFeedbackStageChange;
 window.getUserRole             = getUserRole;
