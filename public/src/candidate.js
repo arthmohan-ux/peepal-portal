@@ -330,17 +330,30 @@ function buildPipelineDatesTable(c, pipeline) {
 function parseFeedbackEntries(remarks) {
   if (!remarks) return [];
   const entries = [];
-  const parts = remarks.split(/(?=\[[^\]]+\] (?:\[scores:|\w))/);
+  // Split on entries that start with [header] pattern
+  // Each entry starts with [stage — date — author] optionally followed by [scores: ...]
+  const parts = remarks.split(/\n\n(?=\[)/);
   for (const part of parts) {
-    const match = part.match(/^\[([^\]]+)\]\s*(?:\[scores:([^\]]+)\])?\s*([\s\S]*)/);
-    if (!match) continue;
-    const header    = match[1];
-    const scoresRaw = match[2]?.trim() || '';
-    const notes     = match[3]?.trim() || '';
+    const trimmed = part.trim();
+    if (!trimmed.startsWith('[')) continue;
+
+    // Match: [header] optional [scores: ...] rest
+    const headerMatch = trimmed.match(/^\[([^\]]+)\]/);
+    if (!headerMatch) continue;
+
+    const header = headerMatch[1];
+    const rest   = trimmed.slice(headerMatch[0].length).trim();
+
+    // Check if scores block follows
+    const scoresMatch = rest.match(/^\[scores:([^\]]+)\]\s*/);
+    const scoresRaw   = scoresMatch?.[1]?.trim() || '';
+    const notes       = scoresMatch ? rest.slice(scoresMatch[0].length).trim() : rest;
+
     const headerParts = header.split(' — ');
     const stage  = headerParts[0]?.trim().replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Note';
     const date   = headerParts[1]?.trim() || '';
     const author = headerParts[2]?.trim() || '';
+
     const scores = {};
     if (scoresRaw) {
       scoresRaw.split('·').forEach(s => {
@@ -348,6 +361,7 @@ function parseFeedbackEntries(remarks) {
         if (k && v) scores[k] = v;
       });
     }
+
     entries.push({ stage, date, author, notes, scores });
   }
   return entries.reverse();
@@ -517,11 +531,10 @@ async function saveFeedback() {
       const updated = window.allCandidates().find(x => x._row === currentCandidate._row);
       if (updated) {
         currentCandidate = updated;
-        // Refresh just the history section
-        const historyContainer = document.querySelector('#tab-feedback');
-        if (historyContainer) {
-          historyContainer.innerHTML = buildFeedbackForm(updated);
-        }
+        // Re-render the full panel to show updated feedback history
+        renderPanel(updated);
+        // Switch back to feedback tab
+        switchTab('feedback');
       }
       btn.textContent = '💾 Save Feedback';
       btn.disabled    = false;
