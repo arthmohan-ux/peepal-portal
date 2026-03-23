@@ -446,7 +446,6 @@ function buildFeedbackForm(c) {
 function onFeedbackStageChange(stage, candidateJson) {
   // No scores section needed — scores removed as requested
 }
-}
 
 function updateWordCount() {
   const textarea = document.getElementById('feedback-notes');
