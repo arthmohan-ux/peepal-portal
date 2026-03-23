@@ -331,7 +331,6 @@ function buildPipelineActions(c, pipeline) {
   const userEmail = window.__userEmail || '';
   const currentStatus = c.status || '';
 
-  // Check if user can change status for this candidate
   const role = getUserRole(userEmail);
   let canChangeStatus = false;
   if (role === 'admin' || role === 'recruiter') {
@@ -347,76 +346,63 @@ function buildPipelineActions(c, pipeline) {
 
   if (!canChangeStatus) return '';
 
-  // Determine current stage and next stage
-  const STAGE_PENDING = {
-    'Screening':     'Aptitude Pending',
-    'Aptitude':      'Manager Round Pending',
-    'Assessment':    'Manager Round Pending',
-    'AI Interview':  'Manager Round Pending',
-    'Manager Round': 'Kaveri Round Pending',
-    'Kaveri Round':  'Vijay Round Pending',
-    'Vijay Round':   'Final Select',
+  // Build all valid statuses for this pipeline
+  const STAGE_STATUSES = {
+    'Screening':     ['Hold', 'Drop', 'Screen Reject'],
+    'Aptitude':      ['Aptitude Pending', 'Aptitude Select', 'Aptitude Reject', 'Test Reject'],
+    'Assessment':    ['Assessment Pending', 'Assesment Under Review', 'Assessment Reject'],
+    'AI Interview':  ['AI Interview Pending', 'AI Interview Reject'],
+    'Manager Round': ['Manager Round Pending', 'Manager Round Reject'],
+    'Kaveri Round':  ['Kaveri Round Pending', 'Kaveri Feedback Pending', 'Kaveri Reject'],
+    'Vijay Round':   ['Vijay Round Pending', 'Vijay Reject'],
   };
-  const STAGE_REJECT = {
-    'Screening':     'Screen Reject',
-    'Aptitude':      'Aptitude Reject',
-    'Assessment':    'Assessment Reject',
-    'AI Interview':  'AI Interview Reject',
-    'Manager Round': 'Manager Round Reject',
-    'Kaveri Round':  'Kaveri Reject',
-    'Vijay Round':   'Vijay Reject',
-  };
+  const TERMINAL = ['Final Select', 'Offered', 'Offer Dropout', 'Joined'];
 
-  // Figure out current stage from status
-  const statusToStage = {
-    'Aptitude Pending': 'Aptitude', 'Aptitude Reject': 'Aptitude', 'Aptitude Select': 'Aptitude', 'Test Reject': 'Aptitude',
-    'Assessment Pending': 'Assessment', 'Assessment Reject': 'Assessment', 'Assesment Under Review': 'Assessment',
-    'AI Interview Pending': 'AI Interview', 'AI Interview Reject': 'AI Interview',
-    'Manager Round Pending': 'Manager Round', 'Manager Round Reject': 'Manager Round',
-    'Kaveri Round Pending': 'Kaveri Round', 'Kaveri Feedback Pending': 'Kaveri Round', 'Kaveri Reject': 'Kaveri Round',
-    'Vijay Round Pending': 'Vijay Round', 'Vijay Reject': 'Vijay Round',
-    'Screen Reject': 'Screening', 'Hold': 'Screening', 'Drop': 'Screening',
-  };
+  const allStatuses = [];
+  pipeline.forEach(stage => {
+    (STAGE_STATUSES[stage] || []).forEach(s => {
+      if (!allStatuses.includes(s)) allStatuses.push(s);
+    });
+  });
+  TERMINAL.forEach(s => allStatuses.push(s));
+  allStatuses.push('Drop');
 
-  const currentStage = statusToStage[currentStatus] || pipeline[0] || 'Screening';
-  const currentStageIdx = pipeline.indexOf(currentStage);
-  const nextStage = currentStageIdx >= 0 && currentStageIdx < pipeline.length - 1
-    ? pipeline[currentStageIdx + 1] : null;
-  const nextStatus = nextStage ? (STAGE_PENDING[nextStage] || nextStage) : 'Final Select';
-  const rejectStatus = STAGE_REJECT[currentStage] || 'Drop';
-
-  const isTerminal = ['Final Select', 'Offered', 'Joined', 'Drop'].includes(currentStatus);
+  const options = allStatuses
+    .filter(s => s !== currentStatus)
+    .map(s => `<option value="${escHtml(s)}">${escHtml(s)}</option>`)
+    .join('');
 
   return `
     <div style="margin-top:24px">
-      <div class="feedback-section-title">Pipeline Actions</div>
+      <div class="feedback-section-title">Update Pipeline Status</div>
       <div style="background:var(--slate-50);border-radius:12px;padding:16px">
         <div style="font-size:11px;color:var(--slate-500);margin-bottom:12px">
-          Current status: <strong style="color:var(--slate-700)">${escHtml(currentStatus || '—')}</strong>
+          Current: <strong style="color:var(--slate-700)">${escHtml(currentStatus || '—')}</strong>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          ${!isTerminal && nextStage ? `
-          <button onclick="updateCandidateStatus(${c._row}, '${escHtml(nextStatus)}')"
-            style="padding:8px 16px;background:#4338CA;color:white;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">
-            → Move to ${escHtml(nextStage)}
-          </button>` : ''}
-          ${!isTerminal ? `
-          <button onclick="updateCandidateStatus(${c._row}, '${escHtml(rejectStatus)}')"
-            style="padding:8px 16px;background:#FEE2E2;color:#B91C1C;border:1.5px solid #FECACA;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">
-            ✗ Reject at ${escHtml(currentStage)}
-          </button>` : ''}
-          <button onclick="updateCandidateStatus(${c._row}, 'Drop')"
-            style="padding:8px 16px;background:var(--slate-100);color:var(--slate-500);border:1.5px solid var(--slate-200);border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">
-            ⊘ Drop
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="status-select-${c._row}" class="email-stage-select" style="flex:1;min-width:200px">
+            <option value="">— Select new status —</option>
+            ${options}
+          </select>
+          <button onclick="updateCandidateStatus(${c._row})"
+            style="padding:8px 18px;background:#4338CA;color:white;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">
+            Update Status
           </button>
         </div>
-        <div id="status-update-msg" style="margin-top:10px"></div>
+        <div id="status-update-msg-${c._row}" style="margin-top:10px"></div>
       </div>
     </div>`;
 }
 
-async function updateCandidateStatus(rowNum, newStatus) {
-  const msgEl = document.getElementById('status-update-msg');
+async function updateCandidateStatus(rowNum) {
+  const newStatus = document.getElementById(`status-select-${rowNum}`)?.value;
+  const msgEl = document.getElementById(`status-update-msg-${rowNum}`);
+
+  if (!newStatus) {
+    if (msgEl) msgEl.innerHTML = '<span style="font-size:11px;color:#B91C1C;font-weight:700">Please select a status first.</span>';
+    return;
+  }
+
   if (msgEl) msgEl.innerHTML = '<span style="font-size:11px;color:var(--slate-400)">Updating...</span>';
 
   try {
