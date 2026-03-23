@@ -549,73 +549,188 @@ async function saveFeedback() {
 
 // ── EMAIL COMPOSER ──
 function buildEmailComposer(c, pipeline) {
-  const stageOptions = pipeline
-    .filter(s => s !== 'Screening')
-    .map(s => `<option value="${s.toLowerCase().replace(/\s+/g,'_')}">${escHtml(s)}</option>`)
-    .join('');
+  const stageOptions = [
+    `<option value="all_rounds">📋 All Rounds (full dossier)</option>`,
+    ...pipeline.map(s => `<option value="${s.toLowerCase().replace(/\s+/g,'_')}">${escHtml(s)}</option>`)
+  ].join('');
 
-  // Suggest recipients based on role — manager + recruiter always shown
   const suggested = new Set();
-  if (c.manager) {
-    const m = KNOWN_PEOPLE.find(p => p.name === c.manager);
-    if (m) suggested.add(m.email);
-  }
-  if (c.recruiter) {
-    const r = KNOWN_PEOPLE.find(p => p.name === c.recruiter);
-    if (r) suggested.add(r.email);
-  }
+  if (c.manager)   { const m = KNOWN_PEOPLE.find(p => p.name === c.manager);   if (m) suggested.add(m.email); }
+  if (c.recruiter) { const r = KNOWN_PEOPLE.find(p => p.name === c.recruiter); if (r) suggested.add(r.email); }
 
   const recipientChips = KNOWN_PEOPLE.map(p => `
     <div class="recipient-chip ${suggested.has(p.email) ? 'selected' : ''}"
-         data-email="${escHtml(p.email)}"
-         onclick="toggleRecipient(this)">
+         data-email="${escHtml(p.email)}" onclick="toggleRecipient(this)">
       <span class="chip-check">${suggested.has(p.email) ? '✓' : ''}</span>
       <span>${escHtml(p.name)}</span>
     </div>`).join('');
 
+  // Build initial preview
+  const initialPreview = buildEmailPreviewHtml(c, 'all_rounds', '', true, true, true);
+
   return `
-    <div class="email-composer">
+    <div style="display:flex;gap:0;height:100%;min-height:600px;margin:-24px;overflow:hidden;border-radius:0 0 0 0">
 
-      <div>
-        <div class="feedback-section-title">Stage / Round</div>
-        <select id="email-stage" class="email-stage-select" onchange="updateEmailPreview()">
-          ${stageOptions}
-        </select>
-      </div>
+      <!-- LEFT: Composer controls -->
+      <div style="width:320px;flex-shrink:0;padding:20px;overflow-y:auto;border-right:1px solid var(--slate-200);background:var(--slate-50)">
 
-      <div>
-        <div class="recipient-picker">
-          <div class="recipient-picker-label">To — Recipients</div>
-          <div class="recipient-list" id="recipient-list-to">
-            ${recipientChips}
-          </div>
-          <div class="email-add-custom">
-            <input type="email" id="custom-recipient" class="email-custom-input" placeholder="Add another email...">
-            <button class="btn-add-recipient" onclick="addCustomRecipient()">+ Add</button>
+        <div style="margin-bottom:14px">
+          <div class="feedback-section-title">Stage / Round</div>
+          <select id="email-stage" class="email-stage-select" onchange="refreshEmailPreview()">
+            ${stageOptions}
+          </select>
+        </div>
+
+        <div style="margin-bottom:14px">
+          <div class="feedback-section-title">Subject</div>
+          <input type="text" id="email-subject-input" class="filter-input" style="width:100%;height:36px"
+            value="[Full Dossier — All Rounds] ${escHtml(c.name)} — ${escHtml(c.role)} | Peepal Consulting"
+            oninput="refreshEmailPreview()">
+        </div>
+
+        <div style="margin-bottom:14px">
+          <div class="feedback-section-title">Include Sections</div>
+          <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;font-weight:600;color:var(--slate-600);cursor:pointer">
+            <input type="checkbox" id="include-profile" checked onchange="refreshEmailPreview()"> Candidate Profile
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;font-weight:600;color:var(--slate-600);cursor:pointer">
+            <input type="checkbox" id="include-feedback" checked onchange="refreshEmailPreview()"> Feedback History
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--slate-600);cursor:pointer">
+            <input type="checkbox" id="include-scores" checked onchange="refreshEmailPreview()"> Scores
+          </label>
+        </div>
+
+        <div style="margin-bottom:14px">
+          <div class="feedback-section-title">Custom Message</div>
+          <textarea id="email-custom-msg" class="feedback-textarea" style="min-height:80px"
+            placeholder="Add a personal note or context at the top of the email..."
+            oninput="refreshEmailPreview()"></textarea>
+        </div>
+
+        <div style="margin-bottom:14px">
+          <div class="recipient-picker">
+            <div class="recipient-picker-label">To — Recipients</div>
+            <div class="recipient-list" id="recipient-list-to">${recipientChips}</div>
+            <div class="email-add-custom">
+              <input type="email" id="custom-recipient" class="email-custom-input" placeholder="Add another email...">
+              <button class="btn-add-recipient" onclick="addCustomRecipient()">+ Add</button>
+            </div>
           </div>
         </div>
+
+        <div id="email-send-msg"></div>
+
+        <button class="btn-send-email" id="btn-send-email" onclick="sendEmail()">
+          ✉️ Send Email
+        </button>
+
       </div>
 
-      <div>
-        <div class="feedback-section-title">Subject Preview</div>
-        <div class="email-preview-box">
-          <div class="email-preview-subject" id="email-subject-preview">
-            [Manager Round] ${escHtml(c.name)} — ${escHtml(c.role)} | Peepal Consulting
-          </div>
-          <div style="margin-top:4px;font-size:10px;color:var(--slate-400)">
-            Dossier includes: candidate profile · round scores · feedback notes · previous remarks
-          </div>
+      <!-- RIGHT: Live preview -->
+      <div style="flex:1;overflow-y:auto;background:#e8eaf0;padding:20px">
+        <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--slate-400);margin-bottom:10px">Live Preview</div>
+        <div id="email-live-preview" style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08)">
+          ${initialPreview}
         </div>
       </div>
-
-      <div id="email-send-msg"></div>
-
-      <button class="btn-send-email" id="btn-send-email" onclick="sendEmail()">
-        ✉️ Send Dossier Email
-      </button>
 
     </div>`;
 }
+
+function buildEmailPreviewHtml(c, stage, customMsg, includeProfile, includeFeedback, includeScores) {
+  const DEPT_ACCENT = {
+    'TA': '#3949AB', 'BD': '#1565C0', 'Central Marketing': '#6A1B9A',
+    'TAD': '#2E7D32', 'HR': '#F57F17', "Founder's Office": '#AD1457',
+  };
+  const DEPT_BG = {
+    'TA': '#E8EAF6', 'BD': '#E3F2FD', 'Central Marketing': '#F3E5F5',
+    'TAD': '#E8F5E9', 'HR': '#FFF9C4', "Founder's Office": '#FCE4EC',
+  };
+  const accent = DEPT_ACCENT[c.department] || '#283593';
+  const bg     = DEPT_BG[c.department]     || '#F5F5F5';
+  const stageLabel = stage === 'all_rounds'
+    ? 'Full Dossier — All Rounds'
+    : stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+  const profileSection = includeProfile ? `
+    <table style="width:100%;border-collapse:collapse;background:#f8fafc;border-radius:8px;margin-bottom:16px;">
+      ${[
+        ['Recruiter', c.recruiter], ['Manager', c.manager], ['Status', c.status],
+        ['Experience', c.experience], ['Notice Period', c.noticePeriod],
+        ['Last CTC', c.lastCtc], ['Expected CTC', c.expectedCtc],
+        ['Location', c.location], ['Education', c.education],
+      ].filter(([,v]) => v).map(([k,v]) => `
+        <tr>
+          <td style="padding:6px 12px;font-size:11px;color:#94a3b8;font-weight:700;width:40%;border-bottom:1px solid #eee">${k}</td>
+          <td style="padding:6px 12px;font-size:11px;font-weight:700;color:#334155;border-bottom:1px solid #eee">${v}</td>
+        </tr>`).join('')}
+    </table>` : '';
+
+  const feedbackEntries = parseFeedbackEntries(c.remarks || '');
+  const feedbackSection = includeFeedback && feedbackEntries.length > 0 ? `
+    <h3 style="font-size:11px;font-weight:800;color:${accent};text-transform:uppercase;letter-spacing:1px;margin:0 0 10px">Feedback History</h3>
+    ${feedbackEntries.map(e => `
+      <div style="background:#f8fafc;border-radius:8px;padding:12px;border-left:3px solid ${accent};margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:10px;font-weight:800;color:${accent};text-transform:uppercase">${e.stage}</span>
+          <span style="font-size:10px;color:#94a3b8">by ${e.author} · ${e.date}</span>
+        </div>
+        ${includeScores && Object.keys(e.scores).length > 0 ? `
+        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+          ${Object.entries(e.scores).map(([k,v]) => `<span style="background:#EEF2FF;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:800;color:#4338CA">${k}: ${v}</span>`).join('')}
+        </div>` : ''}
+        ${e.notes ? `<p style="font-size:11px;line-height:1.6;color:#334155;margin:0">${e.notes}</p>` : ''}
+      </div>`).join('')}` : '';
+
+  return `
+    <div style="background:#1A1A2E;padding:20px 24px">
+      <p style="margin:0;color:#A0A8C8;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Peepal Consulting — Hiring Portal</p>
+      <h1 style="margin:4px 0 0;color:white;font-size:18px;font-weight:800">${stageLabel} Dossier</h1>
+    </div>
+    <div style="background:${bg};padding:10px 24px;border-left:4px solid ${accent}">
+      <span style="font-size:10px;font-weight:800;color:${accent};text-transform:uppercase;letter-spacing:1px">${c.department || ''}</span>
+    </div>
+    <div style="padding:20px 24px">
+      ${customMsg ? `<div style="background:#FFF8E1;border-left:3px solid #FFC107;border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#334155">${customMsg.replace(/\n/g,'<br>')}</div>` : ''}
+      <h2 style="margin:0 0 2px;font-size:18px;font-weight:800;color:#1A1A2E">${c.name}</h2>
+      <p style="margin:0 0 16px;font-size:11px;color:#64748b">${c.role} · ${c.department}</p>
+      ${profileSection}
+      ${feedbackSection}
+      ${c.resumeLink ? `<a href="${c.resumeLink}" style="display:inline-block;background:${accent};color:white;padding:8px 16px;border-radius:6px;font-size:10px;font-weight:800;text-decoration:none;text-transform:uppercase">View Resume →</a>` : ''}
+    </div>
+    <div style="background:#f8fafc;padding:12px 24px;border-top:1px solid #e2e8f0">
+      <p style="margin:0;font-size:10px;color:#94a3b8">Sent via Peepal Hiring Portal · ${new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}</p>
+    </div>`;
+}
+
+function refreshEmailPreview() {
+  if (!currentCandidate) return;
+  const stage          = document.getElementById('email-stage')?.value || 'all_rounds';
+  const customMsg      = document.getElementById('email-custom-msg')?.value || '';
+  const includeProfile = document.getElementById('include-profile')?.checked ?? true;
+  const includeFeedback= document.getElementById('include-feedback')?.checked ?? true;
+  const includeScores  = document.getElementById('include-scores')?.checked ?? true;
+
+  // Update subject
+  const stageLabel = stage === 'all_rounds'
+    ? 'Full Dossier — All Rounds'
+    : stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  const subjectInput = document.getElementById('email-subject-input');
+  if (subjectInput && !subjectInput.dataset.userEdited) {
+    subjectInput.value = `[${stageLabel}] ${currentCandidate.name} — ${currentCandidate.role} | Peepal Consulting`;
+  }
+
+  const preview = document.getElementById('email-live-preview');
+  if (preview) {
+    preview.innerHTML = buildEmailPreviewHtml(currentCandidate, stage, customMsg, includeProfile, includeFeedback, includeScores);
+  }
+}
+
+// Mark subject as user-edited if they type in it
+document.addEventListener('input', e => {
+  if (e.target?.id === 'email-subject-input') e.target.dataset.userEdited = '1';
+});
 
 function toggleRecipient(el) {
   el.classList.toggle('selected');
@@ -646,19 +761,18 @@ function getSelectedRecipients() {
 }
 
 function updateEmailPreview() {
-  if (!currentCandidate) return;
-  const stage = document.getElementById('email-stage')?.value || '';
-  const label = stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  const preview = document.getElementById('email-subject-preview');
-  if (preview) {
-    preview.textContent = `[${label}] ${currentCandidate.name} — ${currentCandidate.role} | Peepal Consulting`;
-  }
+  refreshEmailPreview();
 }
 
 async function sendEmail() {
   if (!currentCandidate) return;
 
   const stage      = document.getElementById('email-stage')?.value;
+  const subject    = document.getElementById('email-subject-input')?.value?.trim();
+  const customMsg  = document.getElementById('email-custom-msg')?.value?.trim() || '';
+  const includeProfile  = document.getElementById('include-profile')?.checked ?? true;
+  const includeFeedback = document.getElementById('include-feedback')?.checked ?? true;
+  const includeScores   = document.getElementById('include-scores')?.checked ?? true;
   const recipients = getSelectedRecipients();
   const btn        = document.getElementById('btn-send-email');
   const msgEl      = document.getElementById('email-send-msg');
@@ -667,14 +781,6 @@ async function sendEmail() {
     if (msgEl) msgEl.innerHTML = '<div class="send-error">Please select at least one recipient.</div>';
     return;
   }
-
-  // Gather scores from feedback tab if filled
-  const scores = {
-    acumen: document.getElementById('score-acumen')?.value || null,
-    intel:  document.getElementById('score-intel')?.value  || null,
-    hunger: document.getElementById('score-hunger')?.value || null,
-  };
-  const feedback = document.getElementById('feedback-notes')?.value?.trim() || null;
 
   btn.disabled    = true;
   btn.textContent = 'Sending...';
@@ -687,8 +793,11 @@ async function sendEmail() {
       body:    JSON.stringify({
         candidate: currentCandidate,
         stage,
-        feedback,
-        scores,
+        subject,
+        customMsg,
+        includeProfile,
+        includeFeedback,
+        includeScores,
         to: recipients,
       }),
     });
@@ -705,7 +814,7 @@ async function sendEmail() {
     if (msgEl) msgEl.innerHTML = `<div class="send-error">Error: ${escHtml(err.message)}</div>`;
   } finally {
     btn.disabled    = false;
-    btn.textContent = '✉️ Send Dossier Email';
+    btn.textContent = '✉️ Send Email';
   }
 }
 
