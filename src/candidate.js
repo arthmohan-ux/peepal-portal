@@ -695,6 +695,11 @@ function buildEmailPreviewHtml(c, stage, customMsg, includeProfile, includeFeedb
       ${customMsg ? `<div style="background:#FFF8E1;border-left:3px solid #FFC107;border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#334155">${customMsg.replace(/\n/g,'<br>')}</div>` : ''}
       <h2 style="margin:0 0 2px;font-size:18px;font-weight:800;color:#1A1A2E">${c.name}</h2>
       <p style="margin:0 0 16px;font-size:11px;color:#64748b">${c.role} · ${c.department}</p>
+      ${c.aptitudeScore ? `
+      <div style="background:${bg};border-radius:8px;padding:10px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px">
+        <span style="font-size:10px;font-weight:800;color:${accent};text-transform:uppercase;letter-spacing:1px">Aptitude Score</span>
+        <span style="font-size:18px;font-weight:800;color:#1A1A2E">${c.aptitudeScore}</span>
+      </div>` : ''}
       ${profileSection}
       ${feedbackSection}
       ${c.resumeLink ? `<a href="${c.resumeLink}" style="display:inline-block;background:${accent};color:white;padding:8px 16px;border-radius:6px;font-size:10px;font-weight:800;text-decoration:none;text-transform:uppercase">View Resume →</a>` : ''}
