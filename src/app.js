@@ -18,7 +18,7 @@ const ROLE_PIPELINE = {
   'Manager - BD':                        ['Screening','Aptitude','Kaveri Round','Vijay Round'],
   'Head - BD':                           ['Screening','Kaveri Round','Vijay Round'],
   'Executive - Central Marketing':       ['Screening','Aptitude','Assessment','Manager Round','Kaveri Round','Vijay Round'],
-  'GD - Central Marketing':             ['Screening','Aptitude','Assessment','Manager Round','Kaveri Round','Vijay Round'],
+  'GD - Central Marketing':              ['Screening','Aptitude','Assessment','Manager Round','Kaveri Round','Vijay Round'],
   'Market Research - Central Marketing': ['Screening','Aptitude','Assessment','Manager Round','Kaveri Round','Vijay Round'],
   'Marketing Lead - Central Marketing':  ['Screening','Aptitude','Assessment','Manager Round','Kaveri Round','Vijay Round'],
   'Video Editor - Central Marketing':    ['Screening','Aptitude','Assessment','Manager Round','Kaveri Round','Vijay Round'],
@@ -26,7 +26,7 @@ const ROLE_PIPELINE = {
   'MT (BD & CR) - TAD':                  ['Screening','Aptitude','Manager Round','Kaveri Round','Vijay Round'],
   'GD - TAD':                            ['Screening','Aptitude','Assessment','Manager Round','Kaveri Round','Vijay Round'],
   'Marketing Executive - TAD':           ['Screening','Aptitude','Assessment','Manager Round','Kaveri Round','Vijay Round'],
-  'Marketing Lead - TAD':               ['Screening','Aptitude','Assessment','Manager Round','Kaveri Round','Vijay Round'],
+  'Marketing Lead - TAD':                ['Screening','Aptitude','Assessment','Manager Round','Kaveri Round','Vijay Round'],
   'Operations - HR':                     ['Screening','Aptitude','Manager Round','Kaveri Round','Vijay Round'],
   'Senior TA - HR':                      ['Screening','Aptitude','Manager Round','Kaveri Round','Vijay Round'],
   "Founder's Office":                    ['Screening','Aptitude','AI Interview','Manager Round','Kaveri Round','Vijay Round'],
@@ -42,7 +42,7 @@ const DEPT_ROLES = {
 };
 
 const REJECT_STATUSES  = ['Screen Reject','Aptitude Reject','Test Reject','Assessment Reject','AI Interview Reject','Manager Round Reject','Kaveri Reject','Vijay Reject','Offer Dropout','Drop'];
-const PENDING_STATUSES = ['Aptitude Pending','Assessment Pending','Assesment Under Review','AI Interview Pending','Manager Round Pending','Kaveri Round Pending','Kaveri Feedback Pending','Vijay Round Pending','Hold'];
+const PENDING_STATUSES = ['Aptitude Pending','Assessment Pending','Assesment Under Review','AI Interview Pending','Manager Round Pending','Manager Feedback Pending','Kaveri Round Pending','Kaveri Feedback Pending','Vijay Round Pending','Vijay Feedback Pending','Hold'];
 const SELECT_STATUSES  = ['Aptitude Select','Final Select'];
 
 // ── STATE ──
@@ -152,9 +152,9 @@ const STAGE_STATUSES = {
   'Aptitude':      ['Aptitude Pending', 'Aptitude Reject', 'Test Reject', 'Aptitude Select'],
   'Assessment':    ['Assessment Pending', 'Assessment Reject', 'Assesment Under Review'],
   'AI Interview':  ['AI Interview Pending', 'AI Interview Reject'],
-  'Manager Round': ['Manager Round Pending', 'Manager Round Reject'],
+  'Manager Round': ['Manager Round Pending', 'Manager Feedback Pending', 'Manager Round Reject'],
   'Kaveri Round':  ['Kaveri Round Pending', 'Kaveri Feedback Pending', 'Kaveri Reject'],
-  'Vijay Round':   ['Vijay Round Pending', 'Vijay Reject'],
+  'Vijay Round':   ['Vijay Round Pending', 'Vijay Feedback Pending', 'Vijay Reject'],
 };
 const TERMINAL_STATUSES = ['Final Select', 'Offered', 'Offer Dropout', 'Joined'];
 

@@ -352,9 +352,9 @@ function buildPipelineActions(c, pipeline) {
     'Aptitude':      ['Aptitude Pending', 'Aptitude Select', 'Aptitude Reject', 'Test Reject'],
     'Assessment':    ['Assessment Pending', 'Assesment Under Review', 'Assessment Reject'],
     'AI Interview':  ['AI Interview Pending', 'AI Interview Reject'],
-    'Manager Round': ['Manager Round Pending', 'Manager Round Reject'],
+    'Manager Round': ['Manager Round Pending', 'Manager Feedback Pending', 'Manager Round Reject'],
     'Kaveri Round':  ['Kaveri Round Pending', 'Kaveri Feedback Pending', 'Kaveri Reject'],
-    'Vijay Round':   ['Vijay Round Pending', 'Vijay Reject'],
+    'Vijay Round':   ['Vijay Round Pending', 'Vijay Feedback Pending', 'Vijay Reject'],
   };
   const TERMINAL = ['Final Select', 'Offered', 'Offer Dropout', 'Joined'];
 
