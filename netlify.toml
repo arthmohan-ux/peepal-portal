@@ -53,3 +53,8 @@
   from = "/"
   to = "/login.html"
   status = 200
+
+[[redirects]]
+  from = "/analytics"
+  to = "/analytics.html"
+  status = 200
