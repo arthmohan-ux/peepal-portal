@@ -169,7 +169,6 @@ function renderPanel(c) {
       <div id="tab-pipeline" class="panel-section ${activeTab === 'pipeline' ? 'active' : ''}">
         ${buildPipelineTimeline(c, pipeline)}
         ${buildPipelineDatesTable(c, pipeline)}
-        ${buildPipelineActions(c, pipeline)}
       </div>
 
       <!-- ── FEEDBACK TAB ── -->
@@ -324,105 +323,6 @@ function buildPipelineDatesTable(c, pipeline) {
         ${rows}
       </table>
     </div>`;
-}
-
-// ── PIPELINE ACTIONS ──
-function buildPipelineActions(c, pipeline) {
-  const userEmail = window.__userEmail || '';
-  const currentStatus = c.status || '';
-
-  const role = getUserRole(userEmail);
-  let canChangeStatus = false;
-  if (role === 'admin' || role === 'recruiter') {
-    canChangeStatus = true;
-  } else if (role === 'manager') {
-    const managerEmail = MANAGER_NAME_EMAIL[c.manager];
-    canChangeStatus = managerEmail === userEmail;
-  } else if (role === 'kaveri') {
-    canChangeStatus = pipeline.includes('Kaveri Round');
-  } else if (role === 'vijay') {
-    canChangeStatus = pipeline.includes('Vijay Round');
-  }
-
-  if (!canChangeStatus) return '';
-
-  // Build all valid statuses for this pipeline
-  const STAGE_STATUSES = {
-    'Screening':     ['Hold', 'Drop', 'Screen Reject'],
-    'Aptitude':      ['Aptitude Pending', 'Aptitude Select', 'Aptitude Reject', 'Test Reject'],
-    'Assessment':    ['Assessment Pending', 'Assesment Under Review', 'Assessment Reject'],
-    'AI Interview':  ['AI Interview Pending', 'AI Interview Reject'],
-    'Manager Round': ['Manager Round Pending', 'Manager Feedback Pending', 'Manager Round Reject'],
-    'Kaveri Round':  ['Kaveri Round Pending', 'Kaveri Feedback Pending', 'Kaveri Reject'],
-    'Vijay Round':   ['Vijay Round Pending', 'Vijay Feedback Pending', 'Vijay Reject'],
-  };
-  const TERMINAL = ['Final Select', 'Offered', 'Offer Dropout', 'Joined'];
-
-  const allStatuses = [];
-  pipeline.forEach(stage => {
-    (STAGE_STATUSES[stage] || []).forEach(s => {
-      if (!allStatuses.includes(s)) allStatuses.push(s);
-    });
-  });
-  TERMINAL.forEach(s => allStatuses.push(s));
-  allStatuses.push('Drop');
-
-  const options = allStatuses
-    .filter(s => s !== currentStatus)
-    .map(s => `<option value="${escHtml(s)}">${escHtml(s)}</option>`)
-    .join('');
-
-  return `
-    <div style="margin-top:24px">
-      <div class="feedback-section-title">Update Pipeline Status</div>
-      <div style="background:var(--slate-50);border-radius:12px;padding:16px">
-        <div style="font-size:11px;color:var(--slate-500);margin-bottom:12px">
-          Current: <strong style="color:var(--slate-700)">${escHtml(currentStatus || '—')}</strong>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <select id="status-select-${c._row}" class="email-stage-select" style="flex:1;min-width:200px">
-            <option value="">— Select new status —</option>
-            ${options}
-          </select>
-          <button onclick="updateCandidateStatus(${c._row})"
-            style="padding:8px 18px;background:#4338CA;color:white;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">
-            Update Status
-          </button>
-        </div>
-        <div id="status-update-msg-${c._row}" style="margin-top:10px"></div>
-      </div>
-    </div>`;
-}
-
-async function updateCandidateStatus(rowNum) {
-  const newStatus = document.getElementById(`status-select-${rowNum}`)?.value;
-  const msgEl = document.getElementById(`status-update-msg-${rowNum}`);
-
-  if (!newStatus) {
-    if (msgEl) msgEl.innerHTML = '<span style="font-size:11px;color:#B91C1C;font-weight:700">Please select a status first.</span>';
-    return;
-  }
-
-  if (msgEl) msgEl.innerHTML = '<span style="font-size:11px;color:var(--slate-400)">Updating...</span>';
-
-  try {
-    const res = await fetch('/api/feedback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ row: rowNum, statusUpdate: newStatus }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      if (msgEl) msgEl.innerHTML = `<span style="font-size:11px;color:#166534;font-weight:700">✓ Status updated to "${newStatus}"</span>`;
-      await window.loadCandidates();
-      const updated = window.allCandidates().find(x => x._row === rowNum);
-      if (updated) { currentCandidate = updated; renderPanel(updated); switchTab('pipeline'); }
-    } else {
-      throw new Error(data.error || 'Unknown error');
-    }
-  } catch (err) {
-    if (msgEl) msgEl.innerHTML = `<span style="font-size:11px;color:#B91C1C;font-weight:700">Error: ${escHtml(err.message)}</span>`;
-  }
 }
 
 // ── PARSE FEEDBACK ENTRIES from Remarks ──
@@ -969,6 +869,5 @@ window.toggleRecipient         = toggleRecipient;
 window.addCustomRecipient      = addCustomRecipient;
 window.updateEmailPreview      = updateEmailPreview;
 window.copyCandidateLink       = copyCandidateLink;
-window.updateCandidateStatus    = updateCandidateStatus;
 window.onFeedbackStageChange     = onFeedbackStageChange;
 window.getUserRole             = getUserRole;

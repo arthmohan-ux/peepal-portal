@@ -58,54 +58,13 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid row number' }) };
   }
 
-  // Handle status update only
   if (statusUpdate) {
-  const sheetName = process.env.MASTER_SHEET_NAME || 'Master Tracker';
-  try {
-    const sheets = getSheetClient();
-    const colLetter = colToLetter(19); // Status = col 19
-
-    // Write new status value
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: process.env.SHEET_ID,
-      range: `'${sheetName}'!${colLetter}${row}`,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: { values: [[statusUpdate]] },
-    });
-
-    // Get sheet ID for batchUpdate
-    const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: process.env.SHEET_ID });
-    const sheet = spreadsheet.data.sheets.find(s => s.properties.title === sheetName);
-    const sheetId = sheet?.properties?.sheetId ?? 0;
-
-    // Write note on status cell
-    const dateStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-    const noteText = `pending_since:${dateStr}`;
-
-    await sheets.spreadsheets.batchUpdate({
-      spreadsheetId: process.env.SHEET_ID,
-      requestBody: {
-        requests: [{
-          updateCells: {
-            range: {
-              sheetId,
-              startRowIndex: row - 1,
-              endRowIndex:   row,
-              startColumnIndex: 18, // col 19 = index 18
-              endColumnIndex:   19,
-            },
-            rows: [{ values: [{ note: noteText }] }],
-            fields: 'note',
-          },
-        }],
-      },
-    });
-
-    return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
-  } catch (err) {
-    return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({ error: 'Pipeline status updates are disabled in the portal. Please update status directly in the sheet.' }),
+    };
   }
-}
 
   if (!notes && !scores?.acumen && !scores?.intel && !scores?.hunger) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'No data to update' }) };
