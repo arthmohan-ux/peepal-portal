@@ -44,13 +44,27 @@ const DEPT_ROLES = {
 const REJECT_STATUSES  = ['Screen Reject','Aptitude Reject','Test Reject','Assessment Reject','AI Interview Reject','Manager Round Reject','Kaveri Reject','Vijay Reject','Offer Dropout','Drop'];
 const PENDING_STATUSES = ['Aptitude Pending','Assessment Pending','Assesment Under Review','AI Interview Pending','Manager Round Pending','Manager Feedback Pending','Kaveri Round Pending','Kaveri Feedback Pending','Vijay Round Pending','Vijay Feedback Pending','Hold'];
 const SELECT_STATUSES  = ['Aptitude Select','Final Select'];
+const MULTI_SELECT_CONFIG = {
+  filterDept:  { placeholder: 'All Departments', singular: 'Department', plural: 'Departments' },
+  filterRole:  { placeholder: 'All Roles',       singular: 'Role',       plural: 'Roles' },
+  filterWeek:  { placeholder: 'All Weeks',       singular: 'Week',       plural: 'Weeks' },
+  filterMonth: { placeholder: 'All Months',      singular: 'Month',      plural: 'Months' },
+};
 
 // ── STATE ──
 let allCandidates = [];
 let filteredCandidates = [];
+let multiSelectState = {
+  filterDept: [],
+  filterRole: [],
+  filterWeek: [],
+  filterMonth: [],
+};
 
 // ── INIT ──
 document.addEventListener('DOMContentLoaded', async () => {
+  initMultiSelects();
+  populateDepartmentFilter();
   rebuildStatusDropdown(null);
   setupRoleFilter();
   // Fetch logged-in user info for role-based access
@@ -86,6 +100,7 @@ async function loadCandidates() {
     const data = await res.json();
     allCandidates = data.candidates || [];
     window.__allCandidates = allCandidates;
+    populateDateFilters();
     setSyncBadge('live');
     applyFilters();
     renderStats();
@@ -113,9 +128,11 @@ async function loadCandidates() {
 // ── FILTERS ──
 function applyFilters() {
   const search    = document.getElementById('search')?.value.toLowerCase() || '';
-  const dept      = document.getElementById('filterDept')?.value || '';
-  const role      = document.getElementById('filterRole')?.value || '';
+  const dept      = getMultiSelectValues('filterDept');
+  const role      = getMultiSelectValues('filterRole');
   const recruiter = document.getElementById('filterRecruiter')?.value || '';
+  const week      = getMultiSelectValues('filterWeek');
+  const month     = getMultiSelectValues('filterMonth');
   const status    = document.getElementById('filterStatus')?.value || '';
   const groupBy   = document.getElementById('groupBy')?.value || 'none';
 
@@ -123,25 +140,30 @@ function applyFilters() {
     if (search && ![c.name, c.email, c.role, c.recruiter, c.manager].some(
       v => v && v.toLowerCase().includes(search)
     )) return false;
-    if (dept      && c.department !== dept)      return false;
-    if (role      && c.role       !== role)      return false;
+    if (dept.length && !dept.includes(c.department))    return false;
+    if (role.length && !role.includes(c.role))          return false;
     if (recruiter && c.recruiter  !== recruiter) return false;
+    if (week.length && !week.includes(getWeekLabel(c.sourcingDate)))   return false;
+    if (month.length && !month.includes(getMonthLabel(c.sourcingDate))) return false;
     if (status    && c.status     !== status)    return false;
     return true;
   });
 
   renderTable(filteredCandidates, groupBy);
-  renderActivePills({ search, dept, role, recruiter, status });
+  renderActivePills({ search, dept, role, recruiter, week, month, status });
   renderStats();
 }
 
 function clearFilters() {
-  ['search','filterDept','filterRole','filterRecruiter','filterStatus'].forEach(id => {
+  ['search','filterRecruiter','filterStatus'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  ['filterDept','filterRole','filterWeek','filterMonth'].forEach(id => setMultiSelectValues(id, []));
   const groupEl = document.getElementById('groupBy');
   if (groupEl) groupEl.value = 'none';
+  rebuildRoleFilter();
+  rebuildStatusDropdown(getMultiSelectValues('filterRole'));
   applyFilters();
 }
 
@@ -158,22 +180,26 @@ const STAGE_STATUSES = {
 };
 const TERMINAL_STATUSES = ['Final Select', 'Offered', 'Offer Dropout', 'Joined'];
 
-function getValidStatusesForRole(role) {
-  const pipeline = ROLE_PIPELINE[role] || [];
+function getValidStatusesForRoles(roles) {
+  const selectedRoles = Array.isArray(roles) ? roles : (roles ? [roles] : []);
   const statuses = [];
-  pipeline.forEach(stage => {
-    (STAGE_STATUSES[stage] || []).forEach(s => {
-      if (!statuses.includes(s)) statuses.push(s);
+  selectedRoles.forEach(role => {
+    const pipeline = ROLE_PIPELINE[role] || [];
+    pipeline.forEach(stage => {
+      (STAGE_STATUSES[stage] || []).forEach(s => {
+        if (!statuses.includes(s)) statuses.push(s);
+      });
     });
   });
   TERMINAL_STATUSES.forEach(s => { if (!statuses.includes(s)) statuses.push(s); });
   return statuses;
 }
 
-function rebuildStatusDropdown(role) {
+function rebuildStatusDropdown(roles) {
   const statusEl = document.getElementById('filterStatus');
   if (!statusEl) return;
-  const statuses = role ? getValidStatusesForRole(role) : null;
+  const roleList = Array.isArray(roles) ? roles : (roles ? [roles] : []);
+  const statuses = roleList.length ? getValidStatusesForRoles(roleList) : null;
   const current  = statusEl.value;
 
   statusEl.innerHTML = '<option value="">All Statuses</option>';
@@ -197,32 +223,48 @@ function rebuildStatusDropdown(role) {
 }
 
 function setupRoleFilter() {
-  const deptEl   = document.getElementById('filterDept');
-  const roleEl   = document.getElementById('filterRole');
-  if (!deptEl || !roleEl) return;
+  rebuildRoleFilter();
+}
 
-  deptEl.addEventListener('change', () => {
-    const dept  = deptEl.value;
-    const roles = dept ? (DEPT_ROLES[dept] || []) : Object.values(DEPT_ROLES).flat();
+function populateDepartmentFilter() {
+  setMultiSelectOptions('filterDept', Object.keys(DEPT_ROLES));
+}
 
-    roleEl.innerHTML = '<option value="">All Roles</option>';
-    roles.forEach(r => {
-      const opt = document.createElement('option');
-      opt.value = r; opt.textContent = r;
-      roleEl.appendChild(opt);
-    });
-    roleEl.value = '';
-    rebuildStatusDropdown(null); // reset status when dept changes
+function rebuildRoleFilter() {
+  const selectedDepts = getMultiSelectValues('filterDept');
+  const currentRoles = getMultiSelectValues('filterRole');
+  const roles = selectedDepts.length
+    ? [...new Set(selectedDepts.reduce((allRoles, dept) => {
+        allRoles.push(...(DEPT_ROLES[dept] || []));
+        return allRoles;
+      }, []))]
+    : [...new Set(Object.values(DEPT_ROLES).flat())];
+  const preservedRoles = currentRoles.filter(role => roles.includes(role));
+  setMultiSelectOptions('filterRole', roles, preservedRoles);
+}
+
+function populateDateFilters() {
+  const currentWeek = getMultiSelectValues('filterWeek');
+  const currentMonth = getMultiSelectValues('filterMonth');
+
+  const weekMap = new Map();
+  const monthMap = new Map();
+
+  allCandidates.forEach(candidate => {
+    const date = parseDate(candidate.sourcingDate);
+    if (!date) return;
+
+    const week = getWeekLabel(date);
+    const month = getMonthLabel(date);
+    if (week && !weekMap.has(week)) weekMap.set(week, getWeekBucketTimestamp(date));
+    if (month && !monthMap.has(month)) monthMap.set(month, new Date(date.getFullYear(), date.getMonth(), 1).getTime());
   });
 
-  roleEl.addEventListener('change', () => {
-    const role = roleEl.value;
-    rebuildStatusDropdown(role || null);
-    // Clear status selection when role changes
-    const statusEl = document.getElementById('filterStatus');
-    if (statusEl) statusEl.value = '';
-    applyFilters();
-  });
+  const weeks = [...weekMap.entries()].sort((a, b) => b[1] - a[1]).map(([label]) => label);
+  const months = [...monthMap.entries()].sort((a, b) => b[1] - a[1]).map(([label]) => label);
+
+  setMultiSelectOptions('filterWeek', weeks, currentWeek.filter(week => weeks.includes(week)));
+  setMultiSelectOptions('filterMonth', months, currentMonth.filter(month => months.includes(month)));
 }
 
 // ── TABLE RENDER ──
@@ -345,15 +387,15 @@ function renderActivePills(filters) {
 
   const labels = {
     search: 'Search', dept: 'Dept', role: 'Role',
-    recruiter: 'Recruiter', status: 'Status'
+    recruiter: 'Recruiter', week: 'Week', month: 'Month', status: 'Status'
   };
 
   Object.entries(filters).forEach(([key, val]) => {
-    if (!val) return;
+    if (!val || (Array.isArray(val) && !val.length)) return;
     const pill = document.createElement('div');
     pill.className = 'filter-pill';
     pill.innerHTML = `
-      <span>${labels[key]}: <strong>${escHtml(val)}</strong></span>
+      <span>${labels[key]}: <strong>${escHtml(formatFilterValue(val))}</strong></span>
       <button onclick="clearFilter('${key}')" title="Remove filter">×</button>
     `;
     container.appendChild(pill);
@@ -363,10 +405,146 @@ function renderActivePills(filters) {
 function clearFilter(key) {
   const map = {
     search: 'search', dept: 'filterDept', role: 'filterRole',
-    recruiter: 'filterRecruiter', status: 'filterStatus'
+    recruiter: 'filterRecruiter', week: 'filterWeek', month: 'filterMonth', status: 'filterStatus'
   };
   const el = document.getElementById(map[key]);
-  if (el) { el.value = ''; applyFilters(); }
+  if (!el) return;
+
+  if (['dept','role','week','month'].includes(key)) {
+    setMultiSelectValues(map[key], []);
+    if (key === 'dept') rebuildRoleFilter();
+    if (key === 'dept' || key === 'role') rebuildStatusDropdown(getMultiSelectValues('filterRole'));
+  } else {
+    el.value = '';
+  }
+  applyFilters();
+}
+
+function formatFilterValue(val) {
+  if (!Array.isArray(val)) return val;
+  if (val.length <= 2) return val.join(', ');
+  return `${val.length} selected`;
+}
+
+function initMultiSelects() {
+  Object.keys(MULTI_SELECT_CONFIG).forEach(id => {
+    const root = document.getElementById(id);
+    const menu = root?.querySelector('.multi-select-menu');
+    if (!root || !menu) return;
+    menu.addEventListener('change', () => handleMultiSelectChange(id));
+  });
+
+  document.addEventListener('click', (event) => {
+    document.querySelectorAll('.multi-select.open').forEach(el => {
+      if (!el.contains(event.target)) el.classList.remove('open');
+    });
+  });
+}
+
+function toggleMultiSelect(id, event) {
+  event?.stopPropagation();
+  const root = document.getElementById(id);
+  if (!root) return;
+  if (id === 'filterRole') rebuildRoleFilter();
+  const isOpen = root.classList.contains('open');
+  document.querySelectorAll('.multi-select.open').forEach(el => el.classList.remove('open'));
+  if (!isOpen) root.classList.add('open');
+}
+
+function handleMultiSelectChange(id) {
+  const root = document.getElementById(id);
+  if (root) {
+    multiSelectState[id] = [...root.querySelectorAll('input[type="checkbox"]:checked')].map(input => input.value);
+  }
+  updateMultiSelectTrigger(id);
+  if (id === 'filterDept') {
+    rebuildRoleFilter();
+    rebuildStatusDropdown(getMultiSelectValues('filterRole'));
+  } else if (id === 'filterRole') {
+    rebuildStatusDropdown(getMultiSelectValues('filterRole'));
+  }
+  applyFilters();
+}
+
+function setMultiSelectOptions(id, options, selectedValues = []) {
+  const root = document.getElementById(id);
+  const menu = root?.querySelector('.multi-select-menu');
+  if (!root || !menu) return;
+
+  const normalized = options.map(option => typeof option === 'string' ? { value: option, label: option } : option);
+  const selected = new Set(selectedValues);
+  multiSelectState[id] = [...selected];
+  menu.innerHTML = normalized.map(option => `
+    <label class="multi-select-option">
+      <input type="checkbox" value="${escHtml(option.value)}" ${selected.has(option.value) ? 'checked' : ''}>
+      <span>${escHtml(option.label)}</span>
+    </label>
+  `).join('');
+
+  updateMultiSelectTrigger(id);
+}
+
+function setMultiSelectValues(id, values) {
+  const root = document.getElementById(id);
+  const inputs = root?.querySelectorAll('input[type="checkbox"]');
+  if (!inputs) return;
+  const selected = new Set(values);
+  multiSelectState[id] = [...selected];
+  inputs.forEach(input => { input.checked = selected.has(input.value); });
+  updateMultiSelectTrigger(id);
+}
+
+function getMultiSelectValues(id) {
+  return [...(multiSelectState[id] || [])];
+}
+
+function updateMultiSelectTrigger(id) {
+  const root = document.getElementById(id);
+  const trigger = root?.querySelector('.multi-select-trigger');
+  const config = MULTI_SELECT_CONFIG[id];
+  if (!trigger || !config) return;
+
+  const selected = getMultiSelectValues(id);
+  if (!selected.length) {
+    trigger.textContent = config.placeholder;
+  } else if (selected.length === 1) {
+    trigger.textContent = selected[0];
+  } else {
+    trigger.textContent = `${selected.length} ${config.plural}`;
+  }
+}
+
+function parseDate(val) {
+  if (!val) return null;
+  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function getWeekNumberInMonth(val) {
+  const date = parseDate(val);
+  if (!date) return null;
+  return Math.floor((date.getDate() - 1) / 7) + 1;
+}
+
+function getWeekBucketTimestamp(val) {
+  const date = parseDate(val);
+  const weekNumber = getWeekNumberInMonth(val);
+  if (!date || !weekNumber) return null;
+  return new Date(date.getFullYear(), date.getMonth(), ((weekNumber - 1) * 7) + 1).getTime();
+}
+
+function getWeekLabel(val) {
+  const date = parseDate(val);
+  const weekNumber = getWeekNumberInMonth(val);
+  if (!date || !weekNumber) return null;
+  return `Week ${weekNumber} ${date.toLocaleString('en-GB', { month: 'long', year: 'numeric' })}`;
+}
+
+function getMonthLabel(val) {
+  const d = parseDate(val);
+  if (!d) return null;
+  return d.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
 }
 
 // ── STATUS CLASS HELPER ──
@@ -431,3 +609,4 @@ window.loadCandidates = loadCandidates;
 window.logout         = logout;
 window.clearFilters   = clearFilters;
 window.applyFilters   = applyFilters;
+window.toggleMultiSelect = toggleMultiSelect;

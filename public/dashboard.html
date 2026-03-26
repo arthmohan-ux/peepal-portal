@@ -49,22 +49,18 @@
 
       <div class="filter-group">
         <label class="filter-label">Department</label>
-        <select id="filterDept" onchange="applyFilters()" class="filter-select">
-          <option value="">All Departments</option>
-          <option value="TA">TA</option>
-          <option value="BD">BD</option>
-          <option value="Central Marketing">Central Marketing</option>
-          <option value="TAD">TAD</option>
-          <option value="HR">HR</option>
-          <option value="Founder's Office">Founder's Office</option>
-        </select>
+        <div id="filterDept" class="multi-select">
+          <button type="button" class="multi-select-trigger" onclick="toggleMultiSelect('filterDept', event)">All Departments</button>
+          <div class="multi-select-menu hidden"></div>
+        </div>
       </div>
 
       <div class="filter-group">
         <label class="filter-label">Role</label>
-        <select id="filterRole" onchange="applyFilters()" class="filter-select">
-          <option value="">All Roles</option>
-        </select>
+        <div id="filterRole" class="multi-select">
+          <button type="button" class="multi-select-trigger" onclick="toggleMultiSelect('filterRole', event)">All Roles</button>
+          <div class="multi-select-menu hidden"></div>
+        </div>
       </div>
 
       <div class="filter-group">
@@ -77,6 +73,22 @@
           <option value="Renjith">Renjith</option>
           <option value="Subhiksha">Subhiksha</option>
         </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Week</label>
+        <div id="filterWeek" class="multi-select">
+          <button type="button" class="multi-select-trigger" onclick="toggleMultiSelect('filterWeek', event)">All Weeks</button>
+          <div class="multi-select-menu hidden"></div>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Month</label>
+        <div id="filterMonth" class="multi-select">
+          <button type="button" class="multi-select-trigger" onclick="toggleMultiSelect('filterMonth', event)">All Months</button>
+          <div class="multi-select-menu hidden"></div>
+        </div>
       </div>
 
       <div class="filter-group">
@@ -146,7 +158,7 @@
   
   
   <script src="/src/candidate.js?v=3"></script>
-  <script src="/src/app.js?v=3"></script>
+  <script src="/src/app.js?v=4"></script>
   <script src="/src/email.js?v=3"></script>
 </body>
 </html>
