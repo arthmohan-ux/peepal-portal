@@ -50,8 +50,9 @@ function getPermittedFeedbackStages(email, candidate, availableRounds) {
     label: stage,
     key: stage.toLowerCase().replace(/\s+/g, '_'),
   }));
+  const recruiterHrStage = { label: 'Recruiter / HR Feedback', key: 'recruiter_hr_feedback' };
 
-  if (role === 'admin' || role === 'recruiter') return stageKeys;
+  if (role === 'admin' || role === 'recruiter') return [recruiterHrStage, ...stageKeys];
   if (role === 'kaveri') return stageKeys.filter(stage => stage.key === 'kaveri_round');
   if (role === 'vijay') return stageKeys.filter(stage => stage.key === 'vijay_round');
   if (role === 'manager') {
@@ -409,7 +410,7 @@ function buildFeedbackForm(c) {
     .map(({ key, label }) => `<option value="${key}">${escHtml(label)}</option>`)
     .join('');
 
-  if (availableRounds.length === 0) {
+  if (availableRounds.length === 0 && permittedRounds.length === 0) {
     return `<div style="padding:24px;text-align:center;color:var(--slate-400);font-size:13px">No interview rounds in this candidate's pipeline.</div>`;
   }
 

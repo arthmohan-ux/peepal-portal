@@ -156,7 +156,12 @@ exports.handler = async (event) => {
     const candidateName = nameRes.data.values?.[0]?.[0] || '';
     const candidateRole = roleRes.data.values?.[0]?.[0] || '';
     const candidateDept = deptRes.data.values?.[0]?.[0] || '';
-    const stageLabel    = stage ? stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '';
+    const stageLabelMap = {
+      recruiter_hr_feedback: 'Recruiter / HR Feedback',
+    };
+    const stageLabel = stage
+      ? (stageLabelMap[stage] || stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))
+      : '';
 
     // Write remarks to Master Tracker
     await sheets.spreadsheets.values.batchUpdate({
