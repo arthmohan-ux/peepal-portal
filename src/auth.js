@@ -11,8 +11,15 @@
   };
 
   function init() {
-    // Show error if redirected back with error param
     const params = new URLSearchParams(window.location.search);
+
+    const loginBtn = document.getElementById('login-btn');
+    const redirect = params.get('redirect');
+    if (loginBtn && redirect) {
+      loginBtn.href = `/api/auth/login?redirect=${encodeURIComponent(redirect)}`;
+    }
+
+    // Show error if redirected back with error param
     const err    = params.get('error');
     if (err) {
       const el  = document.getElementById('login-error');

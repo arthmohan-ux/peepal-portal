@@ -2,6 +2,9 @@
   publish = "public"
   functions = "netlify/functions"
 
+[functions]
+  included_files = ["public/dashboard.html", "public/analytics.html"]
+
 [build.environment]
   SECRETS_SCAN_OMIT_PATHS = ".env.example,src/candidate.js,src/auth.js,netlify/functions/candidates.js,netlify/functions/feedback.js"
 
@@ -46,7 +49,12 @@
 
 [[redirects]]
   from = "/dashboard"
-  to = "/dashboard.html"
+  to = "/.netlify/functions/dashboard-page"
+  status = 200
+
+[[redirects]]
+  from = "/dashboard.html"
+  to = "/.netlify/functions/dashboard-page"
   status = 200
 
 [[redirects]]
@@ -56,5 +64,10 @@
 
 [[redirects]]
   from = "/analytics"
-  to = "/analytics.html"
+  to = "/.netlify/functions/analytics-page"
+  status = 200
+
+[[redirects]]
+  from = "/analytics.html"
+  to = "/.netlify/functions/analytics-page"
   status = 200

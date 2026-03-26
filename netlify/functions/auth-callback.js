@@ -68,7 +68,8 @@ exports.handler = async (event) => {
     if (stateParam) {
       try {
         const stateObj = JSON.parse(stateParam);
-        if (stateObj.candidate) redirectTo = `/dashboard?candidate=${stateObj.candidate}`;
+        if (stateObj.redirect) redirectTo = stateObj.redirect;
+        else if (stateObj.candidate) redirectTo = `/dashboard?candidate=${stateObj.candidate}`;
       } catch {}
     }
 

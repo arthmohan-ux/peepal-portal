@@ -8,7 +8,11 @@ exports.handler = async (event, context) => {
   // Grab any ?candidate= or ?redirect= from the login URL and pass through state
   const qs        = new URLSearchParams(event.rawQuery || '');
   const candidate = qs.get('candidate') || '';
-  const state     = candidate ? JSON.stringify({ candidate }) : '';
+  const redirect  = qs.get('redirect') || '';
+  const stateData = {};
+  if (candidate) stateData.candidate = candidate;
+  if (redirect) stateData.redirect = redirect;
+  const state = Object.keys(stateData).length ? JSON.stringify(stateData) : '';
 
   const params = new URLSearchParams({
     client_id:     process.env.GOOGLE_CLIENT_ID,
