@@ -273,10 +273,11 @@ function renderTable(candidates, groupBy) {
   const table  = document.getElementById('candidate-table');
   const empty  = document.getElementById('table-empty');
   if (!tbody) return;
+  const sortedCandidates = [...candidates].sort(compareCandidatesByNewest);
 
   tbody.innerHTML = '';
 
-  if (candidates.length === 0) {
+  if (sortedCandidates.length === 0) {
     table.classList.add('hidden');
     empty.classList.remove('hidden');
     return;
@@ -286,13 +287,13 @@ function renderTable(candidates, groupBy) {
   empty.classList.add('hidden');
 
   if (groupBy === 'none') {
-    candidates.forEach(c => tbody.appendChild(buildRow(c)));
+    sortedCandidates.forEach(c => tbody.appendChild(buildRow(c)));
     return;
   }
 
   // Group candidates
   const grouped = {};
-  candidates.forEach(c => {
+  sortedCandidates.forEach(c => {
     const key = c[groupBy] || '—';
     if (!grouped[key]) grouped[key] = [];
     grouped[key].push(c);
@@ -363,6 +364,19 @@ function buildRow(c) {
   tr.querySelector('.btn-manage').removeAttribute('onclick');
 
   return tr;
+}
+
+function compareCandidatesByNewest(a, b) {
+  const dateA = parseDate(a?.sourcingDate);
+  const dateB = parseDate(b?.sourcingDate);
+
+  if (dateA && dateB) {
+    return dateB.getTime() - dateA.getTime();
+  }
+  if (dateA) return -1;
+  if (dateB) return 1;
+
+  return (b?._row || 0) - (a?._row || 0);
 }
 
 // ── STATS BAR ──
