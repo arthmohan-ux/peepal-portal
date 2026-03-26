@@ -61,7 +61,7 @@
   --status-drop-text:   #6B7280;
 
   /* Spacing */
-  --nav-h: 60px;
+  --nav-h: 72px;
   --filter-h: auto;
 }
 
@@ -188,32 +188,37 @@ html, body { height: 100%; font-family: var(--font); }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-  gap: 16px;
+  padding: 0 32px;
+  gap: 20px;
 }
 
 .nav-left { display: flex; align-items: center; gap: 12px; }
 .nav-logo {
-  width: 32px; height: 32px;
+  width: 44px; height: 44px;
   background: white;
   color: var(--navy);
-  font-size: 14px; font-weight: 900;
-  border-radius: 8px;
+  font-size: 18px; font-weight: 900;
+  border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
 }
 .nav-title {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   color: #A0A8C8;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 .nav-link {
-  font-size: 12px;
+  font-size: 13px;
   color: #f0f6ff;
   font-weight: 800;
-  transition: color 0.15s;
+  text-decoration: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  transition: all 0.15s;
 }
+.nav-link:hover { color: white; background: rgba(255,255,255,0.1); }
+.nav-link.active { color: white; background: rgba(99,102,241,0.3); }
 .nav-title strong { color: white; }
 
 .nav-right { display: flex; align-items: center; gap: 12px; }
@@ -234,14 +239,14 @@ html, body { height: 100%; font-family: var(--font); }
 .user-name   { font-size: 12px; color: #94A3B8; font-weight: 600; }
 
 .logout-btn {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
   color: #64748B;
   background: none;
   border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 6px;
-  padding: 4px 10px;
+  border-radius: 8px;
+  padding: 7px 12px;
   cursor: pointer;
   letter-spacing: 0.5px;
   transition: all 0.15s;
