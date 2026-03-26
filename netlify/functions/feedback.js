@@ -7,6 +7,23 @@ const { google }    = require('googleapis');
 const SECRET = new TextEncoder().encode(process.env.SESSION_SECRET);
 
 const IS_DEV = process.env.NEXTAUTH_URL?.includes('localhost');
+const ACCESS = {
+  admins: ['arth.mohan@peepalconsulting.com'],
+  recruiters: ['ramya.h@peepalconsulting.com', 'krishna.kumar@peepalconsulting.com', 'aditi.kaul@peepalconsulting.com', 'subhiksha.k@peepalconsulting.com', 'renjith.k@peepalconsulting.com'],
+  managers: ['ravi.kant.sharma@peepalconsulting.com', 'ambika.s@peepalconsulting.com', 'shiwala.dubey@peepalconsulting.com', 'parv.u@peepalconsulting.com', 'saketh.a@peepalconsulting.com', 'ramakrishna.d@peepalconsulting.com', 'rohan.p@peepalconsulting.com', 'champa.v@peepalconsulting.com'],
+  kaveri: ['kaveri.karnam@peepalconsulting.com'],
+  vijay: ['vijay@peepalconsulting.com'],
+};
+const MANAGER_NAME_EMAIL = {
+  Ravikant: 'ravi.kant.sharma@peepalconsulting.com',
+  Ambika: 'ambika.s@peepalconsulting.com',
+  Shiwala: 'shiwala.dubey@peepalconsulting.com',
+  Parv: 'parv.u@peepalconsulting.com',
+  Saketh: 'saketh.a@peepalconsulting.com',
+  Ramakrishna: 'ramakrishna.d@peepalconsulting.com',
+  Rohan: 'rohan.p@peepalconsulting.com',
+  Champa: 'champa.v@peepalconsulting.com',
+};
 
 async function getSession(event) {
   if (IS_DEV) return { email: 'dev@peepalconsulting.com', name: 'Dev User' };
@@ -38,6 +55,28 @@ function colToLetter(col) {
     col = Math.floor((col - 1) / 26);
   }
   return letter;
+}
+
+function getUserRole(email) {
+  if (!email) return 'viewer';
+  if (ACCESS.admins.includes(email)) return 'admin';
+  if (ACCESS.recruiters.includes(email)) return 'recruiter';
+  if (ACCESS.kaveri.includes(email)) return 'kaveri';
+  if (ACCESS.vijay.includes(email)) return 'vijay';
+  if (ACCESS.managers.includes(email)) return 'manager';
+  return 'viewer';
+}
+
+function canWriteFeedback(email, managerName, stage) {
+  const role = getUserRole(email);
+  if (role === 'admin' || role === 'recruiter') return true;
+  if (role === 'kaveri') return stage === 'kaveri_round';
+  if (role === 'vijay') return stage === 'vijay_round';
+  if (role === 'manager') {
+    const managerEmail = MANAGER_NAME_EMAIL[managerName];
+    return managerEmail === email && stage === 'manager_round';
+  }
+  return false;
 }
 
 exports.handler = async (event) => {
@@ -75,6 +114,20 @@ exports.handler = async (event) => {
   try {
     const sheets  = getSheetClient();
     const updates = [];
+    const managerRange = `'${sheetName}'!R${row}`;
+    const managerRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SHEET_ID,
+      range: managerRange,
+    });
+    const candidateManager = managerRes.data.values?.[0]?.[0] || '';
+
+    if (!canWriteFeedback(session.email, candidateManager, stage)) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ error: 'You do not have permission to add feedback for this round or candidate.' }),
+      };
+    }
 
     // Build scores line if any scores provided
     const scoreParts = [];

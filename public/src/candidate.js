@@ -44,6 +44,24 @@ function canWriteFeedback(email, candidate, stage) {
   return false;
 }
 
+function getPermittedFeedbackStages(email, candidate, availableRounds) {
+  const role = getUserRole(email);
+  const stageKeys = availableRounds.map(stage => ({
+    label: stage,
+    key: stage.toLowerCase().replace(/\s+/g, '_'),
+  }));
+
+  if (role === 'admin' || role === 'recruiter') return stageKeys;
+  if (role === 'kaveri') return stageKeys.filter(stage => stage.key === 'kaveri_round');
+  if (role === 'vijay') return stageKeys.filter(stage => stage.key === 'vijay_round');
+  if (role === 'manager') {
+    const managerEmail = MANAGER_NAME_EMAIL[candidate.manager];
+    if (managerEmail !== email) return [];
+    return stageKeys.filter(stage => stage.key === 'manager_round');
+  }
+  return [];
+}
+
 // ── KNOWN PEOPLE for recipient picker ──
 const KNOWN_PEOPLE = [
   { name: 'Ramya',     email: 'ramya.h@peepalconsulting.com' },
@@ -52,13 +70,19 @@ const KNOWN_PEOPLE = [
   { name: 'Renjith',   email: 'renjith.k@peepalconsulting.com' },
   { name: 'Subhiksha', email: 'subhiksha.k@peepalconsulting.com' },
   { name: 'Kaveri',    email: 'kaveri.karnam@peepalconsulting.com' },
-  { name: 'Ravikant',  email: 'ravikant@peepalconsulting.com' },
-  { name: 'Ambika',    email: 'ambika@peepalconsulting.com' },
-  { name: 'Saketh',    email: 'saketh@peepalconsulting.com' },
-  { name: 'Parv',      email: 'parv@peepalconsulting.com' },
-  { name: 'Mayank',    email: 'mayank@peepalconsulting.com' },
-  { name: 'Anil',      email: 'anil@peepalconsulting.com' },
+  { name: 'Ravikant',  email: 'ravi.kant.sharma@peepalconsulting.com' },
+  { name: 'Ambika',    email: 'ambika.s@peepalconsulting.com' },
+  { name: 'Saketh',    email: 'saketh.a@peepalconsulting.com' },
+  { name: 'Parv',      email: 'parv.u@peepalconsulting.com' },
+  { name: 'Mayank',    email: 'mayank.bajaj@peepalconsulting.com' },
+  { name: 'Anil',      email: 'anil.kumar.s@peepalconsulting.com' },
+  { name: 'Vijay',     email: 'vijay@peepalconsulting.com' },
+  { name: 'Arth',      email: 'arth.mohan@peepalconsulting.com' },
+  { name: 'Rohan',     email: 'rohan.p@peepalconsulting.com' },
+  { name: 'Shiwala',   email: 'shiwala.dubey@peepalconsulting.com' },
+  {name: 'Ramakrishna', email: 'ramakrishna.d@peepalconsulting.com' }
 ];
+const PORTAL_BASE_URL = 'https://peepal-hiring-portal.netlify.app';
 
 let currentCandidate = null;
 let activeTab = 'info';
@@ -88,6 +112,11 @@ function forceClosePanel() {
   document.body.style.overflow = '';
   currentCandidate = null;
   window.history.replaceState({}, '', '/dashboard');
+}
+
+function getCandidateProfileUrl(candidate) {
+  if (!candidate?._row) return '';
+  return `${PORTAL_BASE_URL}/dashboard?candidate=${candidate._row}`;
 }
 
 // ── RENDER PANEL ──
@@ -374,17 +403,18 @@ function buildFeedbackForm(c) {
   // Interview rounds only — no Aptitude, no Screening
   const INTERVIEW_ROUNDS = ['Assessment', 'AI Interview', 'Manager Round', 'Kaveri Round', 'Vijay Round'];
   const availableRounds = pipeline.filter(s => INTERVIEW_ROUNDS.includes(s));
+  const permittedRounds = getPermittedFeedbackStages(userEmail, c, availableRounds);
 
-  const stageOptions = availableRounds
-    .map(s => `<option value="${s.toLowerCase().replace(/\s+/g,'_')}">${escHtml(s)}</option>`)
+  const stageOptions = permittedRounds
+    .map(({ key, label }) => `<option value="${key}">${escHtml(label)}</option>`)
     .join('');
 
   if (availableRounds.length === 0) {
     return `<div style="padding:24px;text-align:center;color:var(--slate-400);font-size:13px">No interview rounds in this candidate's pipeline.</div>`;
   }
 
-  const firstStage = availableRounds[0]?.toLowerCase().replace(/\s+/g,'_') || '';
-  const canWrite   = canWriteFeedback(userEmail, c, firstStage);
+  const firstStage = permittedRounds[0]?.key || '';
+  const canWrite   = permittedRounds.length > 0 && canWriteFeedback(userEmail, c, firstStage);
 
   // Parse existing feedback entries
   const { entries, legacy } = parseFeedbackEntries(c.remarks);
@@ -661,6 +691,7 @@ function buildEmailPreviewHtml(c, stage, customMsg, includeProfile, includeFeedb
   const stageLabel = stage === 'all_rounds'
     ? 'Full Dossier — All Rounds'
     : stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  const candidateProfileUrl = getCandidateProfileUrl(c);
 
   const profileSection = includeProfile ? `
     <table style="width:100%;border-collapse:collapse;background:#f8fafc;border-radius:8px;margin-bottom:16px;">
@@ -693,6 +724,18 @@ function buildEmailPreviewHtml(c, stage, customMsg, includeProfile, includeFeedb
         ${e.notes ? `<p style="font-size:11px;line-height:1.6;color:#334155;margin:0">${e.notes}</p>` : ''}
       </div>`).join('')}` : '';
 
+  const actionButtons = [
+    c.resumeLink
+      ? `<a href="${c.resumeLink}" style="display:inline-block;background:${accent};color:white;padding:8px 16px;border-radius:6px;font-size:10px;font-weight:800;text-decoration:none;text-transform:uppercase">View Resume →</a>`
+      : '',
+    c.linkedin
+      ? `<a href="${c.linkedin}" style="display:inline-block;background:#0A66C2;color:white;padding:8px 16px;border-radius:6px;font-size:10px;font-weight:800;text-decoration:none;text-transform:uppercase">View LinkedIn →</a>`
+      : '',
+    candidateProfileUrl
+      ? `<a href="${candidateProfileUrl}" style="display:inline-block;background:#0F172A;color:white;padding:8px 16px;border-radius:6px;font-size:10px;font-weight:800;text-decoration:none;text-transform:uppercase">Open Candidate Profile →</a>`
+      : '',
+  ].filter(Boolean).join('');
+
   return `
     <div style="background:#1A1A2E;padding:20px 24px">
       <p style="margin:0;color:#A0A8C8;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Peepal Consulting — Hiring Portal</p>
@@ -712,7 +755,7 @@ function buildEmailPreviewHtml(c, stage, customMsg, includeProfile, includeFeedb
       </div>` : ''}
       ${profileSection}
       ${feedbackSection}
-      ${c.resumeLink ? `<a href="${c.resumeLink}" style="display:inline-block;background:${accent};color:white;padding:8px 16px;border-radius:6px;font-size:10px;font-weight:800;text-decoration:none;text-transform:uppercase">View Resume →</a>` : ''}
+      ${actionButtons ? `<div style="display:flex;flex-wrap:wrap;gap:10px">${actionButtons}</div>` : ''}
     </div>
     <div style="background:#f8fafc;padding:12px 24px;border-top:1px solid #e2e8f0">
       <p style="margin:0;font-size:10px;color:#94a3b8">Sent via Peepal Hiring Portal · ${new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}</p>
