@@ -136,6 +136,9 @@
       min-width: 900px;
     }
     .funnel-table th {
+      position: sticky;
+      top: 0;
+      z-index: 20;
       padding: 8px 10px;
       font-size: 9px;
       font-weight: 800;
@@ -146,6 +149,9 @@
       text-align: center;
       white-space: nowrap;
       border-right: 1px solid rgba(255,255,255,0.1);
+    }
+    .funnel-table thead th {
+      box-shadow: inset 0 -1px 0 rgba(255,255,255,0.08);
     }
     .funnel-table th:first-child { text-align: left; border-radius: 8px 0 0 0; }
     .funnel-table th:nth-child(2) { text-align: left; }
@@ -230,7 +236,7 @@
     .role-candidate-table {
       width: 100%;
       border-collapse: collapse;
-      table-layout: fixed;
+      table-layout: auto;
     }
     .role-candidate-table th,
     .role-candidate-table td {
@@ -247,6 +253,14 @@
       text-transform: uppercase;
       letter-spacing: 0.4px;
     }
+    .role-candidate-table th:first-child,
+    .role-candidate-table td:first-child {
+      width: 68%;
+    }
+    .role-candidate-table th:last-child,
+    .role-candidate-table td:last-child {
+      width: 32%;
+    }
     .role-candidate-table tr:last-child td {
       border-bottom: none;
     }
@@ -255,6 +269,8 @@
       font-weight: 600;
       color: var(--slate-700);
       text-decoration: none;
+      white-space: normal;
+      word-break: break-word;
     }
     .role-candidate-name:hover {
       color: #4338CA;
@@ -263,9 +279,8 @@
     .role-candidate-status {
       font-weight: 700;
       color: var(--slate-600);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      white-space: normal;
+      word-break: break-word;
     }
     .sourced-count {
       font-weight: 800;
@@ -290,6 +305,9 @@
       min-width: 800px;
     }
     .tat-table th {
+      position: sticky;
+      top: 0;
+      z-index: 20;
       padding: 8px 10px;
       font-size: 9px;
       font-weight: 800;
@@ -300,6 +318,9 @@
       text-align: center;
       white-space: nowrap;
       border-right: 1px solid rgba(255,255,255,0.1);
+    }
+    .tat-table thead th {
+      box-shadow: inset 0 -1px 0 rgba(255,255,255,0.08);
     }
     .tat-table th:first-child { text-align: left; border-radius: 8px 0 0 0; }
     .tat-table th:nth-child(2) { text-align: center; }

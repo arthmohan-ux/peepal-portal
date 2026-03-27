@@ -790,7 +790,7 @@ function buildRoleCell(role, candidates) {
     <div class="role-cell">
       <div class="role-title">${escHtml(role)}</div>
       <details class="role-candidates">
-        <summary>${sortedCandidates.length} candidate${sortedCandidates.length !== 1 ? 's' : ''}</summary>
+        <summary>View candidates</summary>
         <div class="role-candidate-list">
           <table class="role-candidate-table">
             <thead>
