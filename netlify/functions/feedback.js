@@ -5,6 +5,7 @@ const { jwtVerify } = require('jose');
 const { google }    = require('googleapis');
 
 const SECRET = new TextEncoder().encode(process.env.SESSION_SECRET);
+const MIN_FEEDBACK_NOTES_WORDS = 50;
 
 const IS_DEV = process.env.NEXTAUTH_URL?.includes('localhost');
 const ACCESS = {
@@ -77,6 +78,10 @@ function canWriteFeedback(email, managerName, stage) {
   return false;
 }
 
+function countWords(text) {
+  return String(text || '').trim().split(/\s+/).filter(Boolean).length;
+}
+
 exports.handler = async (event) => {
   const headers = { 'Content-Type': 'application/json' };
 
@@ -105,6 +110,14 @@ exports.handler = async (event) => {
 
   if (!notes && !scores?.acumen && !scores?.intel && !scores?.hunger) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'No data to update' }) };
+  }
+
+  if (countWords(notes) < MIN_FEEDBACK_NOTES_WORDS) {
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({ error: `Notes must be at least ${MIN_FEEDBACK_NOTES_WORDS} words.` }),
+    };
   }
 
   const sheetName = process.env.MASTER_SHEET_NAME || 'Master Tracker';

@@ -115,6 +115,8 @@ const DEPT_COLOURS = {
 };
 
 const MULTI_SELECT_CONFIG = {
+  filterDept: { placeholder: 'All Departments', singular: 'Department', plural: 'Departments' },
+  filterRole: { placeholder: 'All Roles', singular: 'Role', plural: 'Roles' },
   filterMonth: { placeholder: 'All Months', singular: 'Month', plural: 'Months' },
 };
 
@@ -123,6 +125,8 @@ let rawCandidates = [];
 let filtered = [];
 let tatScope = 'filtered';
 let multiSelectState = {
+  filterDept: [],
+  filterRole: [],
   filterMonth: [],
 };
 
@@ -175,6 +179,8 @@ async function loadData() {
 
 // ── FILTER HELPERS ──
 function populateFilterDropdowns() {
+  populateDepartmentFilter();
+
   // Recruiters
   const recEl = document.getElementById('filterRecruiter');
   const recruiters = [...new Set(rawCandidates.map(c => c.recruiter).filter(Boolean))].sort();
@@ -188,14 +194,22 @@ function populateFilterDropdowns() {
   setMultiSelectOptions('filterMonth', months, currentMonths.filter(month => months.includes(month)));
 }
 
-function onDeptChange() {
-  const dept = document.getElementById('filterDept').value;
-  const roleEl = document.getElementById('filterRole');
-  const roles = dept ? (DEPT_ROLES[dept] || []) : Object.values(DEPT_ROLES).flat();
-  roleEl.innerHTML = '<option value="">All Roles</option>';
-  roles.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r; roleEl.appendChild(o); });
-  roleEl.value = '';
-  applyFilters();
+function populateDepartmentFilter() {
+  setMultiSelectOptions('filterDept', Object.keys(DEPT_ROLES), getMultiSelectValues('filterDept'));
+  rebuildRoleFilter();
+}
+
+function rebuildRoleFilter() {
+  const selectedDepts = getMultiSelectValues('filterDept');
+  const currentRoles = getMultiSelectValues('filterRole');
+  const roles = selectedDepts.length
+    ? [...new Set(selectedDepts.reduce((allRoles, dept) => {
+        allRoles.push(...(DEPT_ROLES[dept] || []));
+        return allRoles;
+      }, []))]
+    : [...new Set(Object.values(DEPT_ROLES).flat())];
+  const preservedRoles = currentRoles.filter(role => roles.includes(role));
+  setMultiSelectOptions('filterRole', roles, preservedRoles);
 }
 
 function applyFilters() {
@@ -204,18 +218,14 @@ function applyFilters() {
 }
 
 function clearFilters() {
-  ['filterDept','filterRole','filterRecruiter'].forEach(id => {
+  ['filterRecruiter'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  setMultiSelectValues('filterDept', []);
+  setMultiSelectValues('filterRole', []);
   setMultiSelectValues('filterMonth', []);
-  const roleEl = document.getElementById('filterRole');
-  if (roleEl) {
-    roleEl.innerHTML = '<option value="">All Roles</option>';
-    Object.values(DEPT_ROLES).flat().forEach(r => {
-      const o = document.createElement('option'); o.value = r; o.textContent = r; roleEl.appendChild(o);
-    });
-  }
+  rebuildRoleFilter();
   applyFilters();
 }
 
@@ -264,8 +274,10 @@ function renderSummaryStats() {
       ? `latest activity in ${escHtml(activeMonth)}`
       : 'pending at a stage';
 
-  const dept = document.getElementById('filterDept')?.value;
-  const activeDepts = dept ? [dept] : DEPT_ORDER.filter(d => filtered.some(c => c.department === d));
+  const selectedDepts = getMultiSelectValues('filterDept');
+  const activeDepts = selectedDepts.length
+    ? selectedDepts
+    : DEPT_ORDER.filter(d => filtered.some(c => c.department === d));
 
   const wrap = document.createElement('div');
   wrap.className = 'analytics-section';
@@ -315,8 +327,12 @@ function renderFunnelSection() {
 
   // Build stage counts per role
   const stageCounts = {};
+  const roleCandidates = {};
   for (const c of filtered) {
-    if (!c.role || !c.status) continue;
+    if (!c.role) continue;
+    if (!roleCandidates[c.role]) roleCandidates[c.role] = [];
+    roleCandidates[c.role].push(c);
+    if (!c.status) continue;
     if (!VALID_FUNNEL_STATUSES.has(c.status)) continue;
     if (!stageCounts[c.role]) stageCounts[c.role] = {};
     stageCounts[c.role][c.status] = (stageCounts[c.role][c.status] || 0) + 1;
@@ -354,7 +370,7 @@ function renderFunnelSection() {
     const counts = stageCounts[rl];
     const total  = Object.values(counts).reduce((a, b) => a + b, 0);
     const sourced = total;
-    bodyRows += `<tr><td>${escHtml(rl)}</td><td><span class="dept-badge dept-${dept.replace(/\s+/g,'-').replace(/'/g,'')}">${escHtml(dept)}</span></td>`;
+    bodyRows += `<tr><td>${buildRoleCell(rl, roleCandidates[rl] || [])}</td><td><span class="dept-badge dept-${dept.replace(/\s+/g,'-').replace(/'/g,'')}">${escHtml(dept)}</span></td>`;
     bodyRows += `<td><span class="sourced-count">${sourced}</span></td>`;
     orderedStatuses.forEach(s => {
       const cnt = counts[s] || 0;
@@ -398,13 +414,14 @@ function renderTATSection() {
   const tatData = buildTatData(sourceCandidates);
 
   // Determine which roles to show based on filter
-  const filterDept = document.getElementById('filterDept')?.value;
-  const filterRole = document.getElementById('filterRole')?.value;
-  let tatRoles = filterRole
-    ? [filterRole].filter(r => tatData[r])
-    : filterDept
-      ? (DEPT_ROLES[filterDept] || []).filter(r => tatData[r])
+  const filterDepts = getMultiSelectValues('filterDept');
+  const filterRoles = getMultiSelectValues('filterRole');
+  let tatRoles = filterRoles.length
+    ? filterRoles.filter(r => tatData[r])
+    : filterDepts.length
+      ? filterDepts.flatMap(dept => (DEPT_ROLES[dept] || []).filter(r => tatData[r]))
       : DEPT_ORDER.flatMap(d => (DEPT_ROLES[d] || []).filter(r => tatData[r]));
+  tatRoles = [...new Set(tatRoles)];
 
   if (tatRoles.length === 0) {
     wrap.innerHTML = `<div class="section-header"><div class="section-title">Average TAT (Days)</div></div><div class="empty-state">No TAT data available — fill in stage dates in the sheet.</div>`;
@@ -727,6 +744,28 @@ function switchTrendTab(btn, tabId) {
   section.querySelector('#' + tabId).classList.add('active');
 }
 
+function buildRoleCell(role, candidates) {
+  const sortedCandidates = [...candidates].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  if (!sortedCandidates.length) {
+    return `<div class="role-cell"><div class="role-title">${escHtml(role)}</div></div>`;
+  }
+
+  const links = sortedCandidates.map(candidate => `
+    <a class="role-candidate-link" href="${escAttr(getCandidateAnalyticsLink(candidate))}" target="_blank" rel="noopener noreferrer">
+      ${escHtml(candidate.name || 'Unnamed Candidate')}
+    </a>
+  `).join('');
+
+  return `
+    <div class="role-cell">
+      <div class="role-title">${escHtml(role)}</div>
+      <details class="role-candidates">
+        <summary>${sortedCandidates.length} candidate${sortedCandidates.length !== 1 ? 's' : ''}</summary>
+        <div class="role-candidate-list">${links}</div>
+      </details>
+    </div>`;
+}
+
 function initMultiSelects() {
   Object.keys(MULTI_SELECT_CONFIG).forEach(id => {
     const root = document.getElementById(id);
@@ -746,6 +785,7 @@ function toggleMultiSelect(id, event) {
   event?.stopPropagation();
   const root = document.getElementById(id);
   if (!root) return;
+  if (id === 'filterRole') rebuildRoleFilter();
   const isOpen = root.classList.contains('open');
   document.querySelectorAll('.multi-select.open').forEach(el => el.classList.remove('open'));
   if (!isOpen) root.classList.add('open');
@@ -756,6 +796,7 @@ function handleMultiSelectChange(id) {
   if (root) {
     multiSelectState[id] = [...root.querySelectorAll('input[type="checkbox"]:checked')].map(input => input.value);
   }
+  if (id === 'filterDept') rebuildRoleFilter();
   updateMultiSelectTrigger(id);
   applyFilters();
 }
@@ -880,14 +921,14 @@ function parseDate(val) {
 }
 
 function getCandidatesMatchingFilters({ includeMonth = true, monthMode = 'sourcing' } = {}) {
-  const dept      = document.getElementById('filterDept')?.value || '';
-  const role      = document.getElementById('filterRole')?.value || '';
+  const depts     = getMultiSelectValues('filterDept');
+  const roles     = getMultiSelectValues('filterRole');
   const recruiter = document.getElementById('filterRecruiter')?.value || '';
   const months    = getMultiSelectValues('filterMonth');
 
   return rawCandidates.filter(c => {
-    if (dept      && c.department !== dept) return false;
-    if (role      && c.role       !== role) return false;
+    if (depts.length && !depts.includes(c.department)) return false;
+    if (roles.length && !roles.includes(c.role)) return false;
     if (recruiter && c.recruiter  !== recruiter) return false;
     if (!includeMonth || !months.length) return true;
 
@@ -962,9 +1003,18 @@ function getDept(role) {
   return 'Other';
 }
 
+function getCandidateAnalyticsLink(candidate) {
+  if (!candidate?._row) return '/dashboard';
+  return `${window.location.origin}/dashboard?candidate=${candidate._row}`;
+}
+
 function escHtml(str) {
   if (!str) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function escAttr(str) {
+  return escHtml(str).replace(/'/g, '&#39;');
 }
 
 function setSyncBadge(state) {

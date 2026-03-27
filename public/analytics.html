@@ -184,6 +184,66 @@
       color: var(--navy);
       font-size: 13px;
     }
+    .role-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .role-title {
+      font-weight: 700;
+      color: var(--slate-800);
+      font-size: 11px;
+    }
+    .role-candidates {
+      width: 100%;
+    }
+    .role-candidates summary {
+      list-style: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #4338CA;
+      user-select: none;
+    }
+    .role-candidates summary::-webkit-details-marker { display: none; }
+    .role-candidates summary::after {
+      content: '▾';
+      font-size: 10px;
+      color: var(--slate-400);
+      transition: transform 0.15s ease;
+    }
+    .role-candidates[open] summary::after {
+      transform: rotate(180deg);
+    }
+    .role-candidate-list {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .role-candidate-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--slate-700);
+      text-decoration: none;
+      width: fit-content;
+    }
+    .role-candidate-link::after {
+      content: '↗';
+      font-size: 10px;
+      color: #4338CA;
+    }
+    .role-candidate-link:hover {
+      color: #4338CA;
+      text-decoration: underline;
+    }
     .sourced-count {
       font-weight: 800;
       color: #4338CA;
@@ -330,17 +390,17 @@
       <div class="filter-row">
         <div class="filter-group">
           <span class="filter-label">Department</span>
-          <select class="filter-select" id="filterDept" onchange="onDeptChange()">
-            <option value="">All Departments</option>
-            <option>TA</option><option>BD</option><option>Central Marketing</option>
-            <option>TAD</option><option>HR</option><option>Founder's Office</option>
-          </select>
+          <div id="filterDept" class="multi-select">
+            <button type="button" class="multi-select-trigger" onclick="toggleMultiSelect('filterDept', event)">All Departments</button>
+            <div class="multi-select-menu hidden"></div>
+          </div>
         </div>
         <div class="filter-group">
           <span class="filter-label">Role</span>
-          <select class="filter-select" id="filterRole" onchange="applyFilters()">
-            <option value="">All Roles</option>
-          </select>
+          <div id="filterRole" class="multi-select">
+            <button type="button" class="multi-select-trigger" onclick="toggleMultiSelect('filterRole', event)">All Roles</button>
+            <div class="multi-select-menu hidden"></div>
+          </div>
         </div>
         <div class="filter-group">
           <span class="filter-label">Recruiter</span>

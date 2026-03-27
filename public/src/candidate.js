@@ -81,6 +81,7 @@ const KNOWN_PEOPLE = [
   {name: 'Ramakrishna', email: 'ramakrishna.d@peepalconsulting.com' }
 ];
 const PORTAL_BASE_URL = 'https://peepal-hiring-portal.netlify.app';
+const MIN_FEEDBACK_NOTES_WORDS = 50;
 
 let currentCandidate = null;
 let activeTab = 'info';
@@ -485,10 +486,10 @@ function buildFeedbackForm(c) {
       <textarea
         id="feedback-notes"
         class="feedback-textarea"
-        placeholder="Write your observations, strengths, concerns..."
+        placeholder="Write at least 50 words covering observations, strengths, concerns, and recommendation..."
         oninput="updateWordCount()"
       ></textarea>
-      <div class="word-count" id="word-count">0 words</div>
+      <div class="word-count" id="word-count">0 / ${MIN_FEEDBACK_NOTES_WORDS} words minimum</div>
     </div>
 
     <div id="feedback-msg"></div>
@@ -511,9 +512,9 @@ function updateWordCount() {
   const textarea = document.getElementById('feedback-notes');
   const counter  = document.getElementById('word-count');
   if (!textarea || !counter) return;
-  const words = textarea.value.trim().split(/\s+/).filter(w => w.length > 0).length;
-  counter.textContent = `${words} word${words !== 1 ? 's' : ''}`;
-  counter.className = 'word-count' + (words > 0 && words < 10 ? ' warn' : '');
+  const words = countWords(textarea.value);
+  counter.textContent = `${words} / ${MIN_FEEDBACK_NOTES_WORDS} words minimum`;
+  counter.className = 'word-count' + (words < MIN_FEEDBACK_NOTES_WORDS ? ' warn' : '');
 }
 
 async function saveFeedback() {
@@ -534,8 +535,9 @@ async function saveFeedback() {
     return;
   }
 
-  if (!notes && !acumen && !intel && !hunger) {
-    if (msgEl) msgEl.innerHTML = '<div class="send-error">Please add notes or scores before saving.</div>';
+  const noteWords = countWords(notes);
+  if (noteWords < MIN_FEEDBACK_NOTES_WORDS) {
+    if (msgEl) msgEl.innerHTML = `<div class="send-error">Please add at least ${MIN_FEEDBACK_NOTES_WORDS} words in Notes / Feedback before saving.</div>`;
     return;
   }
 
@@ -896,6 +898,10 @@ function copyCandidateLink(row) {
     // Fallback for browsers without clipboard API
     prompt('Copy this link:', url);
   });
+}
+
+function countWords(text) {
+  return String(text || '').trim().split(/\s+/).filter(Boolean).length;
 }
 
 // ── EXPOSE GLOBALS ──
