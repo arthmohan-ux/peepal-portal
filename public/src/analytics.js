@@ -83,20 +83,26 @@ const ACTIVE_POST_APTITUDE_STATUSES = new Set([
 ]);
 
 const ROLE_DROPDOWN_STATUSES = new Set([
-  'Aptitude Select',
   'Assessment Pending',
+  'Assessment Reject',
   'Assesment Under Review',
   'AI Interview Pending',
+  'AI Interview Reject',
   'Manager Round Pending',
   'Manager Feedback Pending',
+  'Manager Round Reject',
   'Kaveri Round Pending',
   'Kaveri Feedback Pending',
+  'Kaveri Reject',
   'Vijay Round Pending',
   'Vijay Feedback Pending',
+  'Vijay Reject',
   'Final Select',
   'Offered',
+  'Offer Dropout',
   'Joined',
   'Hold',
+  'Drop',
 ]);
 
 const OPEN_STAGE_ORDER = [
@@ -150,8 +156,6 @@ let multiSelectState = {
 // ── INIT ──
 document.addEventListener('DOMContentLoaded', async () => {
   initMultiSelects();
-  updateStickyOffsets();
-  window.addEventListener('resize', updateStickyOffsets);
   // Auth check
   try {
     const res = await fetch('/api/me');
@@ -274,7 +278,6 @@ function renderAll() {
 
   // 6. Month-over-month trend
   content.appendChild(renderMonthTrend());
-  updateStickyOffsets();
 }
 
 // ── 1. SUMMARY STATS ──
@@ -816,12 +819,6 @@ function initMultiSelects() {
       if (!el.contains(event.target)) el.classList.remove('open');
     });
   });
-}
-
-function updateStickyOffsets() {
-  const shell = document.querySelector('.analytics-shell');
-  const offset = shell ? `${shell.offsetHeight}px` : '0px';
-  document.documentElement.style.setProperty('--analytics-sticky-offset', offset);
 }
 
 function toggleMultiSelect(id, event) {
