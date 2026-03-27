@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/src/styles.css">
   <style>
     /* ── ANALYTICS-SPECIFIC STYLES ── */
+    :root { --analytics-sticky-offset: 0px; }
     .analytics-body { background: var(--slate-50); min-height: 100vh; display: flex; flex-direction: column; }
 
     .analytics-shell {
@@ -137,7 +138,7 @@
     }
     .funnel-table th {
       position: sticky;
-      top: 0;
+      top: var(--analytics-sticky-offset);
       z-index: 20;
       padding: 8px 10px;
       font-size: 9px;
@@ -255,11 +256,11 @@
     }
     .role-candidate-table th:first-child,
     .role-candidate-table td:first-child {
-      width: 68%;
+      width: 74%;
     }
     .role-candidate-table th:last-child,
     .role-candidate-table td:last-child {
-      width: 32%;
+      width: 26%;
     }
     .role-candidate-table tr:last-child td {
       border-bottom: none;
@@ -306,7 +307,7 @@
     }
     .tat-table th {
       position: sticky;
-      top: 0;
+      top: var(--analytics-sticky-offset);
       z-index: 20;
       padding: 8px 10px;
       font-size: 9px;
