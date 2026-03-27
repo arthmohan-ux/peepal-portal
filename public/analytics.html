@@ -220,29 +220,52 @@
       transform: rotate(180deg);
     }
     .role-candidate-list {
-      margin-top: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+      margin-top: 10px;
+      width: 100%;
+      border: 1px solid var(--slate-100);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--slate-50);
     }
-    .role-candidate-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+    .role-candidate-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .role-candidate-table th,
+    .role-candidate-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--slate-100);
+      text-align: left;
       font-size: 10px;
+      vertical-align: middle;
+    }
+    .role-candidate-table th {
+      background: white;
+      color: var(--slate-400);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .role-candidate-table tr:last-child td {
+      border-bottom: none;
+    }
+    .role-candidate-name {
+      display: inline-block;
       font-weight: 600;
       color: var(--slate-700);
       text-decoration: none;
-      width: fit-content;
     }
-    .role-candidate-link::after {
-      content: '↗';
-      font-size: 10px;
-      color: #4338CA;
-    }
-    .role-candidate-link:hover {
+    .role-candidate-name:hover {
       color: #4338CA;
       text-decoration: underline;
+    }
+    .role-candidate-status {
+      font-weight: 700;
+      color: var(--slate-600);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .sourced-count {
       font-weight: 800;

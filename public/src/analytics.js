@@ -82,6 +82,29 @@ const ACTIVE_POST_APTITUDE_STATUSES = new Set([
   'Vijay Feedback Pending',
 ]);
 
+const ROLE_DROPDOWN_STATUSES = new Set([
+  'Assessment Pending',
+  'Assessment Reject',
+  'Assesment Under Review',
+  'AI Interview Pending',
+  'AI Interview Reject',
+  'Manager Round Pending',
+  'Manager Feedback Pending',
+  'Manager Round Reject',
+  'Kaveri Round Pending',
+  'Kaveri Feedback Pending',
+  'Kaveri Reject',
+  'Vijay Round Pending',
+  'Vijay Feedback Pending',
+  'Vijay Reject',
+  'Final Select',
+  'Offered',
+  'Offer Dropout',
+  'Joined',
+  'Hold',
+  'Drop',
+]);
+
 const OPEN_STAGE_ORDER = [
   'Assessment Pending',
   'Assesment Under Review',
@@ -330,8 +353,10 @@ function renderFunnelSection() {
   const roleCandidates = {};
   for (const c of filtered) {
     if (!c.role) continue;
-    if (!roleCandidates[c.role]) roleCandidates[c.role] = [];
-    roleCandidates[c.role].push(c);
+    if (ROLE_DROPDOWN_STATUSES.has(c.status)) {
+      if (!roleCandidates[c.role]) roleCandidates[c.role] = [];
+      roleCandidates[c.role].push(c);
+    }
     if (!c.status) continue;
     if (!VALID_FUNNEL_STATUSES.has(c.status)) continue;
     if (!stageCounts[c.role]) stageCounts[c.role] = {};
@@ -750,10 +775,15 @@ function buildRoleCell(role, candidates) {
     return `<div class="role-cell"><div class="role-title">${escHtml(role)}</div></div>`;
   }
 
-  const links = sortedCandidates.map(candidate => `
-    <a class="role-candidate-link" href="${escAttr(getCandidateAnalyticsLink(candidate))}" target="_blank" rel="noopener noreferrer">
-      ${escHtml(candidate.name || 'Unnamed Candidate')}
-    </a>
+  const rows = sortedCandidates.map(candidate => `
+    <tr>
+      <td>
+        <a class="role-candidate-name" href="${escAttr(getCandidateAnalyticsLink(candidate))}" target="_blank" rel="noopener noreferrer">
+          ${escHtml(candidate.name || 'Unnamed Candidate')}
+        </a>
+      </td>
+      <td class="role-candidate-status">${escHtml(candidate.status || 'Unknown')}</td>
+    </tr>
   `).join('');
 
   return `
@@ -761,7 +791,17 @@ function buildRoleCell(role, candidates) {
       <div class="role-title">${escHtml(role)}</div>
       <details class="role-candidates">
         <summary>${sortedCandidates.length} candidate${sortedCandidates.length !== 1 ? 's' : ''}</summary>
-        <div class="role-candidate-list">${links}</div>
+        <div class="role-candidate-list">
+          <table class="role-candidate-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Current Status</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
       </details>
     </div>`;
 }
