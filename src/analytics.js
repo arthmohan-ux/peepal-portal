@@ -68,6 +68,32 @@ const STATUS_FC_CLASS = {
   'Joined':'fc-joined','Offered':'fc-offered',
 };
 
+const DEFAULT_ROLE_PIPELINE = ['Screening','Aptitude','Manager Round','Kaveri Round','Vijay Round'];
+
+const ACTIVE_POST_APTITUDE_STATUSES = new Set([
+  'Assessment Pending',
+  'Assesment Under Review',
+  'AI Interview Pending',
+  'Manager Round Pending',
+  'Manager Feedback Pending',
+  'Kaveri Round Pending',
+  'Kaveri Feedback Pending',
+  'Vijay Round Pending',
+  'Vijay Feedback Pending',
+]);
+
+const OPEN_STAGE_ORDER = [
+  'Assessment Pending',
+  'Assesment Under Review',
+  'AI Interview Pending',
+  'Manager Round Pending',
+  'Manager Feedback Pending',
+  'Kaveri Round Pending',
+  'Kaveri Feedback Pending',
+  'Vijay Round Pending',
+  'Vijay Feedback Pending',
+];
+
 const STAGE_DATE_FIELD = {
   'Aptitude':      'aptitudeDate',
   'Assessment':    'assessmentDate',
@@ -91,6 +117,7 @@ const DEPT_COLOURS = {
 // ── STATE ──
 let rawCandidates = [];
 let filtered = [];
+let tatScope = 'filtered';
 
 // ── INIT ──
 document.addEventListener('DOMContentLoaded', async () => {
@@ -165,19 +192,7 @@ function onDeptChange() {
 }
 
 function applyFilters() {
-  const dept      = document.getElementById('filterDept')?.value || '';
-  const role      = document.getElementById('filterRole')?.value || '';
-  const recruiter = document.getElementById('filterRecruiter')?.value || '';
-  const month     = document.getElementById('filterMonth')?.value || '';
-
-  filtered = rawCandidates.filter(c => {
-    if (dept      && c.department !== dept)                        return false;
-    if (role      && c.role       !== role)                        return false;
-    if (recruiter && c.recruiter  !== recruiter)                   return false;
-    if (month     && getMonthLabel(c.sourcingDate) !== month)      return false;
-    return true;
-  });
-
+  filtered = getCandidatesMatchingFilters({ monthMode: 'sourcing' });
   renderAll();
 }
 
@@ -210,14 +225,17 @@ function renderAll() {
   // 3. TAT analysis
   content.appendChild(renderTATSection());
 
-  // 4. Dept + recruiter (side by side on wide screens)
+  // 4. Open stage aging
+  content.appendChild(renderOpenStageAgingSection());
+
+  // 5. Dept + recruiter (side by side on wide screens)
   const row = document.createElement('div');
   row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:28px;';
   row.appendChild(renderDeptBreakdown());
   row.appendChild(renderRecruiterPerformance());
   content.appendChild(row);
 
-  // 5. Month-over-month trend
+  // 6. Month-over-month trend
   content.appendChild(renderMonthTrend());
 }
 
@@ -226,9 +244,10 @@ function renderSummaryStats() {
   const total    = filtered.length;
   const joined   = filtered.filter(c => c.status === 'Joined').length;
   const selected = filtered.filter(c => ['Final Select','Offered'].includes(c.status)).length;
-  const active   = filtered.filter(c => !['Joined','Final Select','Offered','Offer Dropout','Drop',
-    'Screen Reject','Aptitude Reject','Test Reject','Assessment Reject','AI Interview Reject',
-    'Manager Round Reject','Kaveri Reject','Vijay Reject'].includes(c.status)).length;
+  const month    = document.getElementById('filterMonth')?.value || '';
+  const activePool = getCandidatesMatchingFilters({ includeMonth: false }).filter(c => ACTIVE_POST_APTITUDE_STATUSES.has(c.status));
+  const activeMonth = month || getLatestMonthLabel(activePool.map(c => getCandidateLastActivityDate(c)));
+  const active   = activePool.filter(c => !activeMonth || getMonthLabel(getCandidateLastActivityDate(c)) === activeMonth).length;
   const convRate = total > 0 ? Math.round(((joined + selected) / total) * 100) : 0;
 
   const dept = document.getElementById('filterDept')?.value;
@@ -253,7 +272,7 @@ function renderSummaryStats() {
         <div class="stat-card">
           <div class="stat-card-label">Active in Pipeline</div>
           <div class="stat-card-value" style="color:#4338CA">${active}</div>
-          <div class="stat-card-sub">pending at a stage</div>
+          <div class="stat-card-sub">${activeMonth ? `latest activity in ${escHtml(activeMonth)}` : 'pending at a stage'}</div>
         </div>
         <div class="stat-card">
           <div class="stat-card-label">Selected / Offered</div>
@@ -282,13 +301,9 @@ function renderFunnelSection() {
 
   // Build stage counts per role
   const stageCounts = {};
-  const invalidStatuses = new Set();
   for (const c of filtered) {
     if (!c.role || !c.status) continue;
-    if (!VALID_FUNNEL_STATUSES.has(c.status)) {
-      invalidStatuses.add(c.status);
-      continue;
-    }
+    if (!VALID_FUNNEL_STATUSES.has(c.status)) continue;
     if (!stageCounts[c.role]) stageCounts[c.role] = {};
     stageCounts[c.role][c.status] = (stageCounts[c.role][c.status] || 0) + 1;
   }
@@ -349,7 +364,6 @@ function renderFunnelSection() {
         <thead><tr>${headerCells}</tr></thead>
         <tbody>${bodyRows}</tbody>
       </table>
-      ${invalidStatuses.size ? `<div class="empty-state" style="margin-top:12px">Ignored invalid status values in source data: ${escHtml([...invalidStatuses].sort().join(', '))}</div>` : ''}
       <div class="legend">
         <div class="legend-item"><div class="legend-dot" style="background:#FEE2E2"></div>Reject / Drop</div>
         <div class="legend-item"><div class="legend-dot" style="background:#FEF9C3"></div>Pending</div>
@@ -366,27 +380,8 @@ function renderFunnelSection() {
 function renderTATSection() {
   const wrap = document.createElement('div');
   wrap.className = 'analytics-section';
-
-  // Compute TAT across all raw candidates (not filtered) — same as GAS script
-  const tatData = {};
-  for (const c of rawCandidates) {
-    const pipeline = ROLE_PIPELINE[c.role];
-    if (!pipeline) continue;
-    if (!tatData[c.role]) tatData[c.role] = {};
-    for (let i = 0; i < pipeline.length - 1; i++) {
-      const from = pipeline[i];
-      const to   = pipeline[i + 1];
-      const fromDate = from === 'Screening' ? parseDate(c.sourcingDate) : parseDate(c[STAGE_DATE_FIELD[from]]);
-      const toDate   = to   === 'Screening' ? parseDate(c.sourcingDate) : parseDate(c[STAGE_DATE_FIELD[to]]);
-      if (fromDate && toDate && toDate >= fromDate) {
-        const days = Math.round((toDate - fromDate) / 86400000);
-        if (days > 365) continue; // sanity check
-        const key = `${from} → ${to}`;
-        if (!tatData[c.role][key]) tatData[c.role][key] = [];
-        tatData[c.role][key].push(days);
-      }
-    }
-  }
+  const sourceCandidates = tatScope === 'all' ? rawCandidates : filtered;
+  const tatData = buildTatData(sourceCandidates);
 
   // Determine which roles to show based on filter
   const filterDept = document.getElementById('filterDept')?.value;
@@ -406,7 +401,7 @@ function renderTATSection() {
   const pipelineOrder = ['Screening','Aptitude','Assessment','AI Interview','Manager Round','Kaveri Round','Vijay Round','Offered','Joined'];
   const allTransSet = new Set();
   tatRoles.forEach(rl => {
-    const pl = ROLE_PIPELINE[rl] || [];
+    const pl = getRolePipeline(rl);
     for (let i = 0; i < pl.length - 1; i++) allTransSet.add(`${pl[i]} → ${pl[i+1]}`);
   });
   const allTrans = [...allTransSet].sort((a, b) => {
@@ -426,7 +421,7 @@ function renderTATSection() {
       bodyRows += `<tr class="dept-row"><td colspan="${allTrans.length + 2}">${escHtml(dept)}</td></tr>`;
       prevDept = dept;
     }
-    const pl = ROLE_PIPELINE[rl] || [];
+    const pl = getRolePipeline(rl);
     const roleTransSet = new Set();
     for (let i = 0; i < pl.length - 1; i++) roleTransSet.add(`${pl[i]} → ${pl[i+1]}`);
 
@@ -452,13 +447,95 @@ function renderTATSection() {
     <div class="section-header">
       <div>
         <div class="section-title">Average TAT (Days) — Stage to Stage</div>
-        <div class="section-subtitle">Calculated across all data (not filtered) · Green ≤3d · Yellow 4–7d · Red >7d · n = sample size</div>
+        <div class="section-subtitle">${tatScope === 'all' ? 'Calculated across all candidates in the sheet' : 'Calculated on the currently filtered candidate set'} · Green ≤3d · Yellow 4–7d · Red >7d · n = sample size</div>
       </div>
+    </div>
+    <div class="section-tabs">
+      <button class="section-tab ${tatScope === 'filtered' ? 'active' : ''}" onclick="switchTatScope(this,'filtered')">Current Filters</button>
+      <button class="section-tab ${tatScope === 'all' ? 'active' : ''}" onclick="switchTatScope(this,'all')">All Data</button>
     </div>
     <div class="section-body">
       <table class="tat-table">
         <thead><tr>${headerCells}</tr></thead>
         <tbody>${bodyRows}</tbody>
+      </table>
+    </div>`;
+  return wrap;
+}
+
+// ── 4. OPEN STAGE AGING ──
+function renderOpenStageAgingSection() {
+  const wrap = document.createElement('div');
+  wrap.className = 'analytics-section';
+
+  const stageStats = {};
+  for (const c of filtered) {
+    const info = getOpenStageAging(c);
+    if (!info) continue;
+
+    if (!stageStats[info.stage]) {
+      stageStats[info.stage] = { count: 0, totalDays: 0, fresh: 0, watch: 0, stale: 0, oldest: 0 };
+    }
+
+    const stat = stageStats[info.stage];
+    stat.count++;
+    stat.totalDays += info.days;
+    stat.oldest = Math.max(stat.oldest, info.days);
+    if (info.days <= 3) stat.fresh++;
+    else if (info.days <= 7) stat.watch++;
+    else stat.stale++;
+  }
+
+  const stages = OPEN_STAGE_ORDER.filter(stage => stageStats[stage]);
+  if (stages.length === 0) {
+    wrap.innerHTML = `
+      <div class="section-header">
+        <div>
+          <div class="section-title">Open Stage Aging</div>
+          <div class="section-subtitle">Current filtered pipeline only · based on existing stage dates and current status</div>
+        </div>
+      </div>
+      <div class="empty-state">No post-aptitude pending candidates in the current filters.</div>`;
+    return wrap;
+  }
+
+  const rows = stages.map(stage => {
+    const stat = stageStats[stage];
+    const avg = Math.round(stat.totalDays / stat.count);
+    const cls = avg <= 3 ? 'tat-green' : avg <= 7 ? 'tat-yellow' : 'tat-red';
+    return `
+      <tr>
+        <td>${escHtml(stage)}</td>
+        <td>${stat.count}</td>
+        <td><span class="tat-cell ${cls}">${avg}d</span></td>
+        <td>${stat.fresh}</td>
+        <td>${stat.watch}</td>
+        <td>${stat.stale}</td>
+        <td>${stat.oldest}d</td>
+      </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div class="section-header">
+      <div>
+        <div class="section-title">Open Stage Aging</div>
+        <div class="section-subtitle">Current filtered pipeline only · age is inferred from the previous completed stage or the round date for feedback-pending statuses</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <table class="tat-table">
+        <thead>
+          <tr>
+            <th>Open Stage</th>
+            <th>Candidates</th>
+            <th>Avg Age</th>
+            <th>0-3d</th>
+            <th>4-7d</th>
+            <th>8+d</th>
+            <th>Oldest</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
       </table>
     </div>`;
   return wrap;
@@ -576,18 +653,15 @@ function renderMonthTrend() {
 
   const monthData = {};
   for (const c of filtered) {
-    const m = getMonthLabel(c.sourcingDate);
-    if (!m) continue;
-    if (!monthData[m]) monthData[m] = { sourced: 0, joined: 0, selected: 0 };
-    monthData[m].sourced++;
-    if (c.status === 'Joined') monthData[m].joined++;
-    if (['Final Select','Offered'].includes(c.status)) monthData[m].selected++;
+    bumpMonthCount(monthData, parseDate(c.sourcingDate), 'sourced');
+    bumpMonthCount(monthData, getSelectedEventDate(c), 'selected');
+    bumpMonthCount(monthData, parseDate(c.joiningDate), 'joined');
   }
 
-  const months = Object.keys(monthData).sort((a, b) => new Date('1 ' + a) - new Date('1 ' + b));
+  const months = sortMonthLabels(Object.keys(monthData));
 
   if (months.length === 0) {
-    wrap.innerHTML = `<div class="section-header"><div class="section-title">Month-over-Month</div></div><div class="empty-state">No sourcing date data available.</div>`;
+    wrap.innerHTML = `<div class="section-header"><div class="section-title">Month-over-Month</div></div><div class="empty-state">No event date data available.</div>`;
     return wrap;
   }
 
@@ -605,23 +679,29 @@ function renderMonthTrend() {
   wrap.innerHTML = `
     <div class="section-header">
       <div class="section-title">Month-over-Month Trend</div>
-      <div class="section-subtitle">Based on sourcing date · ${months.length} months of data</div>
+      <div class="section-subtitle">Current filtered candidate set · event month based on each metric's own date field · ${months.length} months of data</div>
     </div>
     <div class="section-tabs">
       <button class="section-tab active" onclick="switchTrendTab(this,'tab-sourced')">Sourced</button>
+      <button class="section-tab" onclick="switchTrendTab(this,'tab-selected')">Selected / Offered</button>
       <button class="section-tab" onclick="switchTrendTab(this,'tab-joined')">Joined</button>
-      <button class="section-tab" onclick="switchTrendTab(this,'tab-selected')">Selected</button>
     </div>
     <div class="section-tab-content active" id="tab-sourced">
       <div class="trend-grid">${buildGrid('sourced','#4338CA')}</div>
     </div>
-    <div class="section-tab-content" id="tab-joined">
-      <div class="trend-grid">${buildGrid('joined','#065F46')}</div>
-    </div>
     <div class="section-tab-content" id="tab-selected">
       <div class="trend-grid">${buildGrid('selected','#166534')}</div>
     </div>`;
+  wrap.innerHTML += `
+    <div class="section-tab-content" id="tab-joined">
+      <div class="trend-grid">${buildGrid('joined','#065F46')}</div>
+    </div>`;
   return wrap;
+}
+
+function switchTatScope(btn, scope) {
+  tatScope = scope;
+  renderAll();
 }
 
 function switchTrendTab(btn, tabId) {
@@ -632,6 +712,69 @@ function switchTrendTab(btn, tabId) {
   section.querySelector('#' + tabId).classList.add('active');
 }
 
+function buildTatData(candidates) {
+  const tatData = {};
+  for (const c of candidates) {
+    const pipeline = getRolePipeline(c.role);
+    if (!tatData[c.role]) tatData[c.role] = {};
+    for (let i = 0; i < pipeline.length - 1; i++) {
+      const from = pipeline[i];
+      const to   = pipeline[i + 1];
+      const fromDate = from === 'Screening' ? parseDate(c.sourcingDate) : getStageDate(c, from);
+      const toDate   = to   === 'Screening' ? parseDate(c.sourcingDate) : getStageDate(c, to);
+      if (fromDate && toDate && toDate >= fromDate) {
+        const days = Math.round((toDate - fromDate) / 86400000);
+        if (days > 365) continue;
+        const key = `${from} → ${to}`;
+        if (!tatData[c.role][key]) tatData[c.role][key] = [];
+        tatData[c.role][key].push(days);
+      }
+    }
+  }
+  return tatData;
+}
+
+function getOpenStageAging(candidate) {
+  const status = candidate.status || '';
+  const pipeline = getRolePipeline(candidate.role);
+  const today = startOfDay(new Date());
+  let startDate = null;
+
+  switch (status) {
+    case 'Assessment Pending':
+    case 'Assesment Under Review':
+      startDate = getStageEntryDate(candidate, 'Assessment', pipeline);
+      break;
+    case 'AI Interview Pending':
+      startDate = getStageEntryDate(candidate, 'AI Interview', pipeline);
+      break;
+    case 'Manager Round Pending':
+      startDate = getStageEntryDate(candidate, 'Manager Round', pipeline);
+      break;
+    case 'Manager Feedback Pending':
+      startDate = getStageDate(candidate, 'Manager Round') || getStageEntryDate(candidate, 'Manager Round', pipeline);
+      break;
+    case 'Kaveri Round Pending':
+      startDate = getStageEntryDate(candidate, 'Kaveri Round', pipeline);
+      break;
+    case 'Kaveri Feedback Pending':
+      startDate = getStageDate(candidate, 'Kaveri Round') || getStageEntryDate(candidate, 'Kaveri Round', pipeline);
+      break;
+    case 'Vijay Round Pending':
+      startDate = getStageEntryDate(candidate, 'Vijay Round', pipeline);
+      break;
+    case 'Vijay Feedback Pending':
+      startDate = getStageDate(candidate, 'Vijay Round') || getStageEntryDate(candidate, 'Vijay Round', pipeline);
+      break;
+    default:
+      return null;
+  }
+
+  if (!startDate) return null;
+  const days = Math.max(0, Math.round((today - startOfDay(startDate)) / 86400000));
+  return { stage: status, days };
+}
+
 // ── HELPERS ──
 function parseDate(val) {
   if (!val) return null;
@@ -640,10 +783,98 @@ function parseDate(val) {
   return isNaN(d.getTime()) ? null : d;
 }
 
+function getCandidatesMatchingFilters({ includeMonth = true, monthMode = 'sourcing' } = {}) {
+  const dept      = document.getElementById('filterDept')?.value || '';
+  const role      = document.getElementById('filterRole')?.value || '';
+  const recruiter = document.getElementById('filterRecruiter')?.value || '';
+  const month     = document.getElementById('filterMonth')?.value || '';
+
+  return rawCandidates.filter(c => {
+    if (dept      && c.department !== dept) return false;
+    if (role      && c.role       !== role) return false;
+    if (recruiter && c.recruiter  !== recruiter) return false;
+    if (!includeMonth || !month) return true;
+
+    const monthDate = monthMode === 'lastActivity'
+      ? getCandidateLastActivityDate(c)
+      : parseDate(c.sourcingDate);
+    return getMonthLabel(monthDate) === month;
+  });
+}
+
 function getMonthLabel(val) {
   const d = parseDate(val);
   if (!d) return null;
   return d.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
+}
+
+function getLatestMonthLabel(dates) {
+  const validDates = dates.map(parseDate).filter(Boolean).sort((a, b) => b - a);
+  return validDates.length ? getMonthLabel(validDates[0]) : '';
+}
+
+function sortMonthLabels(labels) {
+  return [...labels].sort((a, b) => new Date('1 ' + a) - new Date('1 ' + b));
+}
+
+function getRolePipeline(role) {
+  return ROLE_PIPELINE[role] || DEFAULT_ROLE_PIPELINE;
+}
+
+function getStageDate(candidate, stage) {
+  return parseDate(candidate?.[STAGE_DATE_FIELD[stage]]);
+}
+
+function getStageEntryDate(candidate, stage, pipeline = getRolePipeline(candidate.role)) {
+  const index = pipeline.indexOf(stage);
+  if (index <= 0) return parseDate(candidate.sourcingDate);
+
+  const previousStage = pipeline[index - 1];
+  if (previousStage === 'Screening') return parseDate(candidate.sourcingDate);
+  return getStageDate(candidate, previousStage);
+}
+
+function getLatestCompletedStageDate(candidate) {
+  const pipeline = getRolePipeline(candidate.role);
+  let latest = null;
+  for (const stage of pipeline) {
+    if (stage === 'Screening') continue;
+    const date = getStageDate(candidate, stage);
+    if (date && (!latest || date > latest)) latest = date;
+  }
+  return latest;
+}
+
+function getSelectedEventDate(candidate) {
+  const offeredDate = parseDate(candidate.offeredDate);
+  if (offeredDate) return offeredDate;
+  if (candidate.status === 'Final Select') return getLatestCompletedStageDate(candidate);
+  return null;
+}
+
+function getCandidateLastActivityDate(candidate) {
+  const dates = [
+    parseDate(candidate.sourcingDate),
+    parseDate(candidate.aptitudeDate),
+    parseDate(candidate.assessmentDate),
+    parseDate(candidate.managerRoundDate),
+    parseDate(candidate.kaveriRoundDate),
+    parseDate(candidate.vijayRoundDate),
+    parseDate(candidate.offeredDate),
+    parseDate(candidate.joiningDate),
+  ].filter(Boolean);
+  return dates.sort((a, b) => b - a)[0] || null;
+}
+
+function bumpMonthCount(monthData, date, key) {
+  const label = getMonthLabel(date);
+  if (!label) return;
+  if (!monthData[label]) monthData[label] = { sourced: 0, joined: 0, selected: 0 };
+  monthData[label][key] = (monthData[label][key] || 0) + 1;
+}
+
+function startOfDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
 function getDept(role) {
