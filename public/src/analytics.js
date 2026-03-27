@@ -84,25 +84,18 @@ const ACTIVE_POST_APTITUDE_STATUSES = new Set([
 
 const ROLE_DROPDOWN_STATUSES = new Set([
   'Assessment Pending',
-  'Assessment Reject',
   'Assesment Under Review',
   'AI Interview Pending',
-  'AI Interview Reject',
   'Manager Round Pending',
   'Manager Feedback Pending',
-  'Manager Round Reject',
   'Kaveri Round Pending',
   'Kaveri Feedback Pending',
-  'Kaveri Reject',
   'Vijay Round Pending',
   'Vijay Feedback Pending',
-  'Vijay Reject',
   'Final Select',
   'Offered',
-  'Offer Dropout',
   'Joined',
   'Hold',
-  'Drop',
 ]);
 
 const OPEN_STAGE_ORDER = [
