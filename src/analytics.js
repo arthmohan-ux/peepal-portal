@@ -53,6 +53,7 @@ const FUNNEL_STATUS_ORDER = [
   'Vijay Round Pending','Vijay Feedback Pending','Vijay Reject',
   'Final Select','Offered','Offer Dropout','Joined','Hold','Drop',
 ];
+const VALID_FUNNEL_STATUSES = new Set(FUNNEL_STATUS_ORDER);
 
 const STATUS_FC_CLASS = {
   'Screen Reject':'fc-reject','Aptitude Reject':'fc-reject','Test Reject':'fc-reject',
@@ -281,8 +282,13 @@ function renderFunnelSection() {
 
   // Build stage counts per role
   const stageCounts = {};
+  const invalidStatuses = new Set();
   for (const c of filtered) {
     if (!c.role || !c.status) continue;
+    if (!VALID_FUNNEL_STATUSES.has(c.status)) {
+      invalidStatuses.add(c.status);
+      continue;
+    }
     if (!stageCounts[c.role]) stageCounts[c.role] = {};
     stageCounts[c.role][c.status] = (stageCounts[c.role][c.status] || 0) + 1;
   }
@@ -343,6 +349,7 @@ function renderFunnelSection() {
         <thead><tr>${headerCells}</tr></thead>
         <tbody>${bodyRows}</tbody>
       </table>
+      ${invalidStatuses.size ? `<div class="empty-state" style="margin-top:12px">Ignored invalid status values in source data: ${escHtml([...invalidStatuses].sort().join(', '))}</div>` : ''}
       <div class="legend">
         <div class="legend-item"><div class="legend-dot" style="background:#FEE2E2"></div>Reject / Drop</div>
         <div class="legend-item"><div class="legend-dot" style="background:#FEF9C3"></div>Pending</div>
