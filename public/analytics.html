@@ -350,9 +350,10 @@
         </div>
         <div class="filter-group">
           <span class="filter-label">Month</span>
-          <select class="filter-select" id="filterMonth" onchange="applyFilters()">
-            <option value="">All Months</option>
-          </select>
+          <div id="filterMonth" class="multi-select">
+            <button type="button" class="multi-select-trigger" onclick="toggleMultiSelect('filterMonth', event)">All Months</button>
+            <div class="multi-select-menu hidden"></div>
+          </div>
         </div>
         <div class="filter-group filter-group-actions">
           <button class="btn-clear" onclick="clearFilters()">↺ Reset</button>

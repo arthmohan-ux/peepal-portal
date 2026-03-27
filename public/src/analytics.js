@@ -114,13 +114,21 @@ const DEPT_COLOURS = {
   "Founder's Office": '#AD1457',
 };
 
+const MULTI_SELECT_CONFIG = {
+  filterMonth: { placeholder: 'All Months', singular: 'Month', plural: 'Months' },
+};
+
 // ── STATE ──
 let rawCandidates = [];
 let filtered = [];
 let tatScope = 'filtered';
+let multiSelectState = {
+  filterMonth: [],
+};
 
 // ── INIT ──
 document.addEventListener('DOMContentLoaded', async () => {
+  initMultiSelects();
   // Auth check
   try {
     const res = await fetch('/api/me');
@@ -174,11 +182,10 @@ function populateFilterDropdowns() {
   recruiters.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r; recEl.appendChild(o); });
 
   // Months (from sourcingDate)
-  const monthEl = document.getElementById('filterMonth');
   const months = [...new Set(rawCandidates.map(c => getMonthLabel(c.sourcingDate)).filter(Boolean))];
   months.sort((a, b) => new Date('1 ' + a) - new Date('1 ' + b));
-  monthEl.innerHTML = '<option value="">All Months</option>';
-  months.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; monthEl.appendChild(o); });
+  const currentMonths = getMultiSelectValues('filterMonth');
+  setMultiSelectOptions('filterMonth', months, currentMonths.filter(month => months.includes(month)));
 }
 
 function onDeptChange() {
@@ -197,10 +204,11 @@ function applyFilters() {
 }
 
 function clearFilters() {
-  ['filterDept','filterRole','filterRecruiter','filterMonth'].forEach(id => {
+  ['filterDept','filterRole','filterRecruiter'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  setMultiSelectValues('filterMonth', []);
   const roleEl = document.getElementById('filterRole');
   if (roleEl) {
     roleEl.innerHTML = '<option value="">All Roles</option>';
@@ -244,11 +252,17 @@ function renderSummaryStats() {
   const total    = filtered.length;
   const joined   = filtered.filter(c => c.status === 'Joined').length;
   const selected = filtered.filter(c => ['Final Select','Offered'].includes(c.status)).length;
-  const month    = document.getElementById('filterMonth')?.value || '';
+  const months   = getMultiSelectValues('filterMonth');
+  const monthLabel = months.length === 1 ? months[0] : '';
   const activePool = getCandidatesMatchingFilters({ includeMonth: false }).filter(c => ACTIVE_POST_APTITUDE_STATUSES.has(c.status));
-  const activeMonth = month || getLatestMonthLabel(activePool.map(c => getCandidateLastActivityDate(c)));
+  const activeMonth = monthLabel || getLatestMonthLabel(activePool.map(c => getCandidateLastActivityDate(c)));
   const active   = activePool.filter(c => !activeMonth || getMonthLabel(getCandidateLastActivityDate(c)) === activeMonth).length;
   const convRate = total > 0 ? Math.round(((joined + selected) / total) * 100) : 0;
+  const activeSub = months.length > 1
+    ? `latest activity across ${months.length} selected months`
+    : activeMonth
+      ? `latest activity in ${escHtml(activeMonth)}`
+      : 'pending at a stage';
 
   const dept = document.getElementById('filterDept')?.value;
   const activeDepts = dept ? [dept] : DEPT_ORDER.filter(d => filtered.some(c => c.department === d));
@@ -272,7 +286,7 @@ function renderSummaryStats() {
         <div class="stat-card">
           <div class="stat-card-label">Active in Pipeline</div>
           <div class="stat-card-value" style="color:#4338CA">${active}</div>
-          <div class="stat-card-sub">${activeMonth ? `latest activity in ${escHtml(activeMonth)}` : 'pending at a stage'}</div>
+          <div class="stat-card-sub">${activeSub}</div>
         </div>
         <div class="stat-card">
           <div class="stat-card-label">Selected / Offered</div>
@@ -653,9 +667,10 @@ function renderMonthTrend() {
 
   const monthData = {};
   for (const c of filtered) {
-    bumpMonthCount(monthData, parseDate(c.sourcingDate), 'sourced');
-    bumpMonthCount(monthData, getSelectedEventDate(c), 'selected');
-    bumpMonthCount(monthData, parseDate(c.joiningDate), 'joined');
+    const sourcingDate = parseDate(c.sourcingDate);
+    bumpMonthCount(monthData, sourcingDate, 'sourced');
+    if (['Final Select','Offered'].includes(c.status)) bumpMonthCount(monthData, sourcingDate, 'selected');
+    if (c.status === 'Joined') bumpMonthCount(monthData, sourcingDate, 'joined');
   }
 
   const months = sortMonthLabels(Object.keys(monthData));
@@ -679,7 +694,7 @@ function renderMonthTrend() {
   wrap.innerHTML = `
     <div class="section-header">
       <div class="section-title">Month-over-Month Trend</div>
-      <div class="section-subtitle">Current filtered candidate set · event month based on each metric's own date field · ${months.length} months of data</div>
+      <div class="section-subtitle">Current filtered candidate set grouped by sourcing month · ${months.length} months of data</div>
     </div>
     <div class="section-tabs">
       <button class="section-tab active" onclick="switchTrendTab(this,'tab-sourced')">Sourced</button>
@@ -710,6 +725,87 @@ function switchTrendTab(btn, tabId) {
   section.querySelectorAll('.section-tab-content').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
   section.querySelector('#' + tabId).classList.add('active');
+}
+
+function initMultiSelects() {
+  Object.keys(MULTI_SELECT_CONFIG).forEach(id => {
+    const root = document.getElementById(id);
+    const menu = root?.querySelector('.multi-select-menu');
+    if (!root || !menu) return;
+    menu.addEventListener('change', () => handleMultiSelectChange(id));
+  });
+
+  document.addEventListener('click', (event) => {
+    document.querySelectorAll('.multi-select.open').forEach(el => {
+      if (!el.contains(event.target)) el.classList.remove('open');
+    });
+  });
+}
+
+function toggleMultiSelect(id, event) {
+  event?.stopPropagation();
+  const root = document.getElementById(id);
+  if (!root) return;
+  const isOpen = root.classList.contains('open');
+  document.querySelectorAll('.multi-select.open').forEach(el => el.classList.remove('open'));
+  if (!isOpen) root.classList.add('open');
+}
+
+function handleMultiSelectChange(id) {
+  const root = document.getElementById(id);
+  if (root) {
+    multiSelectState[id] = [...root.querySelectorAll('input[type="checkbox"]:checked')].map(input => input.value);
+  }
+  updateMultiSelectTrigger(id);
+  applyFilters();
+}
+
+function setMultiSelectOptions(id, options, selectedValues = []) {
+  const root = document.getElementById(id);
+  const menu = root?.querySelector('.multi-select-menu');
+  if (!root || !menu) return;
+
+  const normalized = options.map(option => typeof option === 'string' ? { value: option, label: option } : option);
+  const selected = new Set(selectedValues);
+  multiSelectState[id] = [...selected];
+  menu.innerHTML = normalized.map(option => `
+    <label class="multi-select-option">
+      <input type="checkbox" value="${escHtml(option.value)}" ${selected.has(option.value) ? 'checked' : ''}>
+      <span>${escHtml(option.label)}</span>
+    </label>
+  `).join('');
+
+  updateMultiSelectTrigger(id);
+}
+
+function setMultiSelectValues(id, values) {
+  const root = document.getElementById(id);
+  const inputs = root?.querySelectorAll('input[type="checkbox"]');
+  if (!inputs) return;
+  const selected = new Set(values);
+  multiSelectState[id] = [...selected];
+  inputs.forEach(input => { input.checked = selected.has(input.value); });
+  updateMultiSelectTrigger(id);
+}
+
+function getMultiSelectValues(id) {
+  return [...(multiSelectState[id] || [])];
+}
+
+function updateMultiSelectTrigger(id) {
+  const root = document.getElementById(id);
+  const trigger = root?.querySelector('.multi-select-trigger');
+  const config = MULTI_SELECT_CONFIG[id];
+  if (!trigger || !config) return;
+
+  const selected = getMultiSelectValues(id);
+  if (!selected.length) {
+    trigger.textContent = config.placeholder;
+  } else if (selected.length === 1) {
+    trigger.textContent = selected[0];
+  } else {
+    trigger.textContent = `${selected.length} ${config.plural}`;
+  }
 }
 
 function buildTatData(candidates) {
@@ -787,18 +883,18 @@ function getCandidatesMatchingFilters({ includeMonth = true, monthMode = 'sourci
   const dept      = document.getElementById('filterDept')?.value || '';
   const role      = document.getElementById('filterRole')?.value || '';
   const recruiter = document.getElementById('filterRecruiter')?.value || '';
-  const month     = document.getElementById('filterMonth')?.value || '';
+  const months    = getMultiSelectValues('filterMonth');
 
   return rawCandidates.filter(c => {
     if (dept      && c.department !== dept) return false;
     if (role      && c.role       !== role) return false;
     if (recruiter && c.recruiter  !== recruiter) return false;
-    if (!includeMonth || !month) return true;
+    if (!includeMonth || !months.length) return true;
 
     const monthDate = monthMode === 'lastActivity'
       ? getCandidateLastActivityDate(c)
       : parseDate(c.sourcingDate);
-    return getMonthLabel(monthDate) === month;
+    return months.includes(getMonthLabel(monthDate));
   });
 }
 
@@ -832,24 +928,6 @@ function getStageEntryDate(candidate, stage, pipeline = getRolePipeline(candidat
   const previousStage = pipeline[index - 1];
   if (previousStage === 'Screening') return parseDate(candidate.sourcingDate);
   return getStageDate(candidate, previousStage);
-}
-
-function getLatestCompletedStageDate(candidate) {
-  const pipeline = getRolePipeline(candidate.role);
-  let latest = null;
-  for (const stage of pipeline) {
-    if (stage === 'Screening') continue;
-    const date = getStageDate(candidate, stage);
-    if (date && (!latest || date > latest)) latest = date;
-  }
-  return latest;
-}
-
-function getSelectedEventDate(candidate) {
-  const offeredDate = parseDate(candidate.offeredDate);
-  if (offeredDate) return offeredDate;
-  if (candidate.status === 'Final Select') return getLatestCompletedStageDate(candidate);
-  return null;
 }
 
 function getCandidateLastActivityDate(candidate) {
