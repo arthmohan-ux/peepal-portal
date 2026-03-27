@@ -5,7 +5,7 @@
 const ACCESS = {
   admins:     ['arth.mohan@peepalconsulting.com'],
   recruiters: ['ramya.h@peepalconsulting.com','krishna.kumar@peepalconsulting.com','aditi.kaul@peepalconsulting.com','subhiksha.k@peepalconsulting.com','renjith.k@peepalconsulting.com'],
-  managers:   ['ravi.kant.sharma@peepalconsulting.com','ambika.s@peepalconsulting.com','shiwala.dubey@peepalconsulting.com','parv.u@peepalconsulting.com','saketh.a@peepalconsulting.com','ramakrishna.d@peepalconsulting.com','rohan.p@peepalconsulting.com','champa.v@peepalconsulting.com'],
+  managers:   ['ravi.kant.sharma@peepalconsulting.com','ambika.s@peepalconsulting.com','shiwala.dubey@peepalconsulting.com','parv.u@peepalconsulting.com','ramakrishna.d@peepalconsulting.com','rohan.p@peepalconsulting.com'],
   kaveri:     ['kaveri.karnam@peepalconsulting.com'],
   vijay:      ['vijay@peepalconsulting.com'],
 };
@@ -16,10 +16,8 @@ const MANAGER_NAME_EMAIL = {
   'Ambika':    'ambika.s@peepalconsulting.com',
   'Shiwala':   'shiwala.dubey@peepalconsulting.com',
   'Parv':      'parv.u@peepalconsulting.com',
-  'Saketh':    'saketh.a@peepalconsulting.com',
   'Ramakrishna': 'ramakrishna.d@peepalconsulting.com',
   'Rohan':     'rohan.p@peepalconsulting.com',
-  'Champa':    'champa.v@peepalconsulting.com',
 };
 
 function getUserRole(email) {
@@ -73,7 +71,6 @@ const KNOWN_PEOPLE = [
   { name: 'Kaveri',    email: 'kaveri.karnam@peepalconsulting.com' },
   { name: 'Ravikant',  email: 'ravi.kant.sharma@peepalconsulting.com' },
   { name: 'Ambika',    email: 'ambika.s@peepalconsulting.com' },
-  { name: 'Saketh',    email: 'saketh.a@peepalconsulting.com' },
   { name: 'Parv',      email: 'parv.u@peepalconsulting.com' },
   { name: 'Mayank',    email: 'mayank.bajaj@peepalconsulting.com' },
   { name: 'Anil',      email: 'anil.kumar.s@peepalconsulting.com' },
