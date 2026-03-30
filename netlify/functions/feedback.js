@@ -5,7 +5,7 @@ const { jwtVerify } = require('jose');
 const { google }    = require('googleapis');
 
 const SECRET = new TextEncoder().encode(process.env.SESSION_SECRET);
-const MIN_FEEDBACK_NOTES_WORDS = 50;
+const MIN_FEEDBACK_NOTES_WORDS = 30;
 
 const IS_DEV = process.env.NEXTAUTH_URL?.includes('localhost');
 const ACCESS = {
@@ -78,6 +78,16 @@ function canWriteFeedback(email, managerName, stage) {
   return false;
 }
 
+function isTaRole(department, role) {
+  const dept = String(department || '').trim();
+  const roleName = String(role || '').trim();
+  return dept === 'TA' || /(?:^| )TA$/.test(roleName) || roleName.includes('- TA');
+}
+
+function getNotesMinimumWords(department, role) {
+  return isTaRole(department, role) ? 0 : MIN_FEEDBACK_NOTES_WORDS;
+}
+
 function countWords(text) {
   return String(text || '').trim().split(/\s+/).filter(Boolean).length;
 }
@@ -112,31 +122,35 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'No data to update' }) };
   }
 
-  if (countWords(notes) <= MIN_FEEDBACK_NOTES_WORDS) {
-    return {
-      statusCode: 400,
-      headers,
-      body: JSON.stringify({ error: `Notes must be more than ${MIN_FEEDBACK_NOTES_WORDS} words.` }),
-    };
-  }
-
   const sheetName = process.env.MASTER_SHEET_NAME || 'Master Tracker';
 
   try {
     const sheets  = getSheetClient();
     const updates = [];
-    const managerRange = `'${sheetName}'!R${row}`;
-    const managerRes = await sheets.spreadsheets.values.get({
+    const candidateMetaRange = `'${sheetName}'!O${row}:R${row}`;
+    const candidateMetaRes = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: managerRange,
+      range: candidateMetaRange,
     });
-    const candidateManager = managerRes.data.values?.[0]?.[0] || '';
+    const candidateMeta = candidateMetaRes.data.values?.[0] || [];
+    const candidateDepartment = candidateMeta[0] || '';
+    const candidateRole = candidateMeta[1] || '';
+    const candidateManager = candidateMeta[3] || '';
+    const minWordsRequired = getNotesMinimumWords(candidateDepartment, candidateRole);
 
     if (!canWriteFeedback(session.email, candidateManager, stage)) {
       return {
         statusCode: 403,
         headers,
         body: JSON.stringify({ error: 'You do not have permission to add feedback for this round or candidate.' }),
+      };
+    }
+
+    if (minWordsRequired > 0 && countWords(notes) < minWordsRequired) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: `Notes must be at least ${minWordsRequired} words.` }),
       };
     }
 

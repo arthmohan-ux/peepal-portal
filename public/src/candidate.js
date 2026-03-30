@@ -80,7 +80,18 @@ const KNOWN_PEOPLE = [
   {name: 'Ramakrishna', email: 'ramakrishna.d@peepalconsulting.com' }
 ];
 const PORTAL_BASE_URL = window.location.origin;
-const MIN_FEEDBACK_NOTES_WORDS = 50;
+const MIN_FEEDBACK_NOTES_WORDS = 30;
+
+function isTaRoleCandidate(candidate) {
+  if (!candidate) return false;
+  const dept = String(candidate.department || '').trim();
+  const role = String(candidate.role || '').trim();
+  return dept === 'TA' || /(?:^| )TA$/.test(role) || role.includes('- TA');
+}
+
+function getFeedbackMinimumWords(candidate) {
+  return isTaRoleCandidate(candidate) ? 0 : MIN_FEEDBACK_NOTES_WORDS;
+}
 
 let currentCandidate = null;
 let activeTab = 'info';
@@ -485,10 +496,10 @@ function buildFeedbackForm(c) {
       <textarea
         id="feedback-notes"
         class="feedback-textarea"
-        placeholder="Write more than 50 words covering observations, strengths, concerns, and recommendation..."
+        placeholder="${getFeedbackMinimumWords(c) > 0 ? `Write at least ${getFeedbackMinimumWords(c)} words covering observations, strengths, concerns, and recommendation...` : 'Write observations, strengths, concerns, and recommendation...'}"
         oninput="updateWordCount()"
       ></textarea>
-      <div class="word-count" id="word-count">0 words. More than ${MIN_FEEDBACK_NOTES_WORDS} required</div>
+      <div class="word-count" id="word-count">${getFeedbackMinimumWords(c) > 0 ? `0 words. ${getFeedbackMinimumWords(c)} minimum required` : 'No minimum word count for TA roles'}</div>
     </div>
 
     <div id="feedback-msg"></div>
@@ -512,8 +523,11 @@ function updateWordCount() {
   const counter  = document.getElementById('word-count');
   if (!textarea || !counter) return;
   const words = countWords(textarea.value);
-  counter.textContent = `${words} words. More than ${MIN_FEEDBACK_NOTES_WORDS} required`;
-  counter.className = 'word-count' + (words <= MIN_FEEDBACK_NOTES_WORDS ? ' warn' : '');
+  const minWords = getFeedbackMinimumWords(currentCandidate);
+  counter.textContent = minWords > 0
+    ? `${words} words. ${minWords} minimum required`
+    : `${words} words. No minimum for TA roles`;
+  counter.className = 'word-count' + (minWords > 0 && words < minWords ? ' warn' : '');
 }
 
 async function saveFeedback() {
@@ -534,9 +548,10 @@ async function saveFeedback() {
     return;
   }
 
+  const minWords = getFeedbackMinimumWords(currentCandidate);
   const noteWords = countWords(notes);
-  if (noteWords <= MIN_FEEDBACK_NOTES_WORDS) {
-    if (msgEl) msgEl.innerHTML = `<div class="send-error">Please add more than ${MIN_FEEDBACK_NOTES_WORDS} words in Notes / Feedback before saving.</div>`;
+  if (minWords > 0 && noteWords < minWords) {
+    if (msgEl) msgEl.innerHTML = `<div class="send-error">Please add at least ${minWords} words in Notes / Feedback before saving.</div>`;
     return;
   }
 
