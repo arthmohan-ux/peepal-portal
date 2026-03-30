@@ -207,9 +207,9 @@ function rebuildStatusDropdown(roles) {
     'Screen Reject','Aptitude Pending','Aptitude Reject','Test Reject','Aptitude Select',
     'Assessment Pending','Assessment Reject','Assesment Under Review',
     'AI Interview Pending','AI Interview Reject',
-    'Manager Round Pending','Manager Round Reject',
+    'Manager Round Pending','Manager Feedback Pending','Manager Round Reject',
     'Kaveri Round Pending','Kaveri Feedback Pending','Kaveri Reject',
-    'Vijay Round Pending','Vijay Reject',
+    'Vijay Round Pending','Vijay Feedback Pending','Vijay Reject',
     'Final Select','Offered','Offer Dropout','Joined','Hold','Drop',
   ];
   list.forEach(s => {
@@ -384,7 +384,7 @@ function renderStats() {
   const total    = filteredCandidates.length;
   const joined   = filteredCandidates.filter(c => c.status === 'Joined').length;
   const selected = filteredCandidates.filter(c => ['Final Select','Offered'].includes(c.status)).length;
-  const active   = filteredCandidates.filter(c => PENDING_STATUSES.includes(c.status)).length;
+  const active   = filteredCandidates.filter(c => c.status && !REJECT_STATUSES.includes(c.status) && c.status !== 'Drop' && c.status !== 'Joined').length;
 
   const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
   set('stat-total',    `<strong>${total}</strong> candidates`);
