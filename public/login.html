@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Peepal Hiring Portal — Login</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Internal Peepal Consulting hiring portal for authorised team members only. Access is restricted to company Google Workspace accounts.">
   <link rel="stylesheet" href="/src/styles.css">
 </head>
 <body class="login-body">
@@ -18,6 +20,9 @@
 
     <div class="login-card">
       <p class="login-card-hint">Sign in with your Peepal Consulting Google account to continue.</p>
+      <p class="login-card-hint" style="margin-top:-4px">
+        This is an internal portal for Peepal Consulting hiring operations. We never ask for your Google password on this page.
+      </p>
 
       <a href="/api/auth/login" class="login-btn" id="login-btn">
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -30,9 +35,13 @@
       </a>
 
       <div id="login-error" class="login-error hidden"></div>
+
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(148,163,184,0.2);font-size:12px;line-height:1.6;color:#64748b">
+        <strong style="color:#334155">Authorised users only.</strong> Access is limited to <code>@peepalconsulting.com</code> accounts approved for recruitment workflows.
+      </div>
     </div>
 
-    <p class="login-footer">Only @peepalconsulting.com accounts can access this portal.</p>
+    <p class="login-footer">Only @peepalconsulting.com accounts can access this portal. If you believe you should have access, contact the Peepal Consulting hiring operations team.</p>
   </div>
 
   <script src="/src/auth.js"></script>

@@ -12,6 +12,7 @@
 
   function init() {
     const params = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
 
     const loginBtn = document.getElementById('login-btn');
     const redirect = params.get('redirect');
@@ -19,13 +20,16 @@
       loginBtn.href = `/api/auth/login?redirect=${encodeURIComponent(redirect)}`;
     }
 
-    // Show error if redirected back with error param
-    const err    = params.get('error');
+    // Show error if redirected back with an auth error marker
+    const err = hashParams.get('auth_error') || params.get('error');
     if (err) {
       const el  = document.getElementById('login-error');
       if (el) {
         el.textContent = ERROR_MESSAGES[err] || 'An unknown error occurred.';
         el.classList.remove('hidden');
+      }
+      if (window.location.hash) {
+        history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
       }
     }
   }

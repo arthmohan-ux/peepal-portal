@@ -59,8 +59,8 @@
 
 [[redirects]]
   from = "/"
-  to = "/login.html"
-  status = 200
+  to = "/login"
+  status = 302
 
 [[redirects]]
   from = "/analytics"

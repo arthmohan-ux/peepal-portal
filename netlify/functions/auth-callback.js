@@ -31,25 +31,26 @@ exports.handler = async (event) => {
   const params = new URLSearchParams(event.rawQuery || '');
   const code   = params.get('code');
   const error  = params.get('error');
+  const loginErrorUrl = (code) => `/login#auth_error=${encodeURIComponent(code)}`;
 
   if (error || !code) {
-    return { statusCode: 302, headers: { Location: '/login?error=access_denied' }, body: '' };
+    return { statusCode: 302, headers: { Location: loginErrorUrl('access_denied') }, body: '' };
   }
 
   try {
     const tokens = await exchangeCode(code);
     if (tokens.error) {
-      return { statusCode: 302, headers: { Location: '/login?error=token_failed' }, body: '' };
+      return { statusCode: 302, headers: { Location: loginErrorUrl('token_failed') }, body: '' };
     }
 
     const user = await getUserInfo(tokens.access_token);
     if (!user.email) {
-      return { statusCode: 302, headers: { Location: '/login?error=no_email' }, body: '' };
+      return { statusCode: 302, headers: { Location: loginErrorUrl('no_email') }, body: '' };
     }
 
     const domain = user.email.split('@')[1];
     if (domain !== process.env.ALLOWED_DOMAIN) {
-      return { statusCode: 302, headers: { Location: '/login?error=wrong_domain' }, body: '' };
+      return { statusCode: 302, headers: { Location: loginErrorUrl('wrong_domain') }, body: '' };
     }
 
     const session = await new SignJWT({
@@ -84,6 +85,6 @@ exports.handler = async (event) => {
 
   } catch (err) {
     console.error('Auth callback error:', err);
-    return { statusCode: 302, headers: { Location: '/login?error=server_error' }, body: '' };
+    return { statusCode: 302, headers: { Location: loginErrorUrl('server_error') }, body: '' };
   }
 };

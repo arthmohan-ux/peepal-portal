@@ -479,9 +479,9 @@ function updateWordCount() {
   const textarea = document.getElementById('feedback-notes');
   const counter  = document.getElementById('word-count');
   if (!textarea || !counter) return;
-  const words = textarea.value.trim().split(/\s+/).filter(w => w.length > 0).length;
-  counter.textContent = `${words} word${words !== 1 ? 's' : ''}`;
-  counter.className = 'word-count' + (words > 0 && words < 10 ? ' warn' : '');
+  const words = countWords(textarea.value);
+  counter.textContent = `${words} words. More than ${MIN_FEEDBACK_NOTES_WORDS} required`;
+  counter.className = 'word-count' + (words <= MIN_FEEDBACK_NOTES_WORDS ? ' warn' : '');
 }
 
 async function saveFeedback() {
@@ -502,8 +502,9 @@ async function saveFeedback() {
     return;
   }
 
-  if (!notes && !acumen && !intel && !hunger) {
-    if (msgEl) msgEl.innerHTML = '<div class="send-error">Please add notes or scores before saving.</div>';
+  const noteWords = countWords(notes);
+  if (noteWords <= MIN_FEEDBACK_NOTES_WORDS) {
+    if (msgEl) msgEl.innerHTML = `<div class="send-error">Please add more than ${MIN_FEEDBACK_NOTES_WORDS} words in Notes / Feedback before saving.</div>`;
     return;
   }
 

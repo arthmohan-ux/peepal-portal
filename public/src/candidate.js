@@ -485,10 +485,10 @@ function buildFeedbackForm(c) {
       <textarea
         id="feedback-notes"
         class="feedback-textarea"
-        placeholder="Write at least 50 words covering observations, strengths, concerns, and recommendation..."
+        placeholder="Write more than 50 words covering observations, strengths, concerns, and recommendation..."
         oninput="updateWordCount()"
       ></textarea>
-      <div class="word-count" id="word-count">0 / ${MIN_FEEDBACK_NOTES_WORDS} words minimum</div>
+      <div class="word-count" id="word-count">0 words. More than ${MIN_FEEDBACK_NOTES_WORDS} required</div>
     </div>
 
     <div id="feedback-msg"></div>
@@ -512,8 +512,8 @@ function updateWordCount() {
   const counter  = document.getElementById('word-count');
   if (!textarea || !counter) return;
   const words = countWords(textarea.value);
-  counter.textContent = `${words} / ${MIN_FEEDBACK_NOTES_WORDS} words minimum`;
-  counter.className = 'word-count' + (words < MIN_FEEDBACK_NOTES_WORDS ? ' warn' : '');
+  counter.textContent = `${words} words. More than ${MIN_FEEDBACK_NOTES_WORDS} required`;
+  counter.className = 'word-count' + (words <= MIN_FEEDBACK_NOTES_WORDS ? ' warn' : '');
 }
 
 async function saveFeedback() {
@@ -535,8 +535,8 @@ async function saveFeedback() {
   }
 
   const noteWords = countWords(notes);
-  if (noteWords < MIN_FEEDBACK_NOTES_WORDS) {
-    if (msgEl) msgEl.innerHTML = `<div class="send-error">Please add at least ${MIN_FEEDBACK_NOTES_WORDS} words in Notes / Feedback before saving.</div>`;
+  if (noteWords <= MIN_FEEDBACK_NOTES_WORDS) {
+    if (msgEl) msgEl.innerHTML = `<div class="send-error">Please add more than ${MIN_FEEDBACK_NOTES_WORDS} words in Notes / Feedback before saving.</div>`;
     return;
   }
 

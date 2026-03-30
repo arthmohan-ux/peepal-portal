@@ -112,11 +112,11 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'No data to update' }) };
   }
 
-  if (countWords(notes) < MIN_FEEDBACK_NOTES_WORDS) {
+  if (countWords(notes) <= MIN_FEEDBACK_NOTES_WORDS) {
     return {
       statusCode: 400,
       headers,
-      body: JSON.stringify({ error: `Notes must be at least ${MIN_FEEDBACK_NOTES_WORDS} words.` }),
+      body: JSON.stringify({ error: `Notes must be more than ${MIN_FEEDBACK_NOTES_WORDS} words.` }),
     };
   }
 
