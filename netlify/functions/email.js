@@ -5,7 +5,7 @@ const { jwtVerify } = require('jose');
 
 const SECRET = new TextEncoder().encode(process.env.SESSION_SECRET);
 const IS_DEV = process.env.NEXTAUTH_URL?.includes('localhost');
-const PORTAL_BASE_URL = process.env.PORTAL_BASE_URL || 'https://peepal-hiring-portal.netlify.app';
+const PORTAL_BASE_URL = process.env.PORTAL_BASE_URL || 'https://peepal-hiring-portalv2.netlify.app';
 
 async function getSession(event) {
   if (IS_DEV) return { email: 'arth.mohan@peepalconsulting.com', name: 'Arth Mohan' };

@@ -79,7 +79,7 @@ const KNOWN_PEOPLE = [
   { name: 'Shiwala',   email: 'shiwala.dubey@peepalconsulting.com' },
   {name: 'Ramakrishna', email: 'ramakrishna.d@peepalconsulting.com' }
 ];
-const PORTAL_BASE_URL = 'https://peepal-hiring-portal.netlify.app';
+const PORTAL_BASE_URL = window.location.origin;
 const MIN_FEEDBACK_NOTES_WORDS = 50;
 
 let currentCandidate = null;
