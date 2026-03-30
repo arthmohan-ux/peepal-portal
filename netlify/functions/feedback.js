@@ -10,7 +10,7 @@ const MIN_FEEDBACK_NOTES_WORDS = 50;
 const IS_DEV = process.env.NEXTAUTH_URL?.includes('localhost');
 const ACCESS = {
   admins: ['arth.mohan@peepalconsulting.com'],
-  recruiters: ['ramya.h@peepalconsulting.com', 'krishna.kumar@peepalconsulting.com', 'aditi.kaul@peepalconsulting.com', 'subhiksha.k@peepalconsulting.com', 'renjith.k@peepalconsulting.com'],
+  recruiters: ['ramya.h@peepalconsulting.com', 'krishna.kumar@peepalconsulting.com', 'aditi.kaul@peepalconsulting.com', 'renjith.k@peepalconsulting.com'],
   managers: ['ravi.kant.sharma@peepalconsulting.com', 'ambika.s@peepalconsulting.com', 'shiwala.dubey@peepalconsulting.com', 'parv.u@peepalconsulting.com', 'ramakrishna.d@peepalconsulting.com', 'rohan.p@peepalconsulting.com'],
   kaveri: ['kaveri.karnam@peepalconsulting.com'],
   vijay: ['vijay@peepalconsulting.com'],

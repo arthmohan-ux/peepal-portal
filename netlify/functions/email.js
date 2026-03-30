@@ -1,5 +1,5 @@
 // netlify/functions/email.js
-// POST — sends dossier email via SendGrid
+// POST — sends candidate summary email via SendGrid
 
 const { jwtVerify } = require('jose');
 
@@ -66,7 +66,7 @@ function buildEmailHtml({ candidate, stage, customMsg, includeProfile=true, incl
   const bg     = DEPT_BG[candidate.department]     || '#F5F5F5';
 
   const stageLabel = stage === 'all_rounds'
-    ? 'Full Dossier — All Rounds'
+    ? 'All Rounds Summary'
     : stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   const subject = `[${stageLabel}] ${candidate.name} — ${candidate.role} | Peepal Consulting`;
   const candidateProfileUrl = getCandidateProfileUrl(candidate);
@@ -132,7 +132,7 @@ function buildEmailHtml({ candidate, stage, customMsg, includeProfile=true, incl
 <div style="max-width:620px;margin:32px auto;background:white;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;">
   <div style="background:#1A1A2E;padding:24px 28px;">
     <p style="margin:0;color:#A0A8C8;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Peepal Consulting — Hiring Portal</p>
-    <h1 style="margin:6px 0 0;color:white;font-size:20px;font-weight:800">${stageLabel} Dossier</h1>
+    <h1 style="margin:6px 0 0;color:white;font-size:20px;font-weight:800">${stageLabel}</h1>
   </div>
   <div style="background:${bg};padding:12px 28px;border-left:5px solid ${accent};">
     <span style="font-size:11px;font-weight:800;color:${accent};text-transform:uppercase;letter-spacing:1px">${candidate.department || ''}</span>

@@ -21,11 +21,11 @@ const EMAIL_TEMPLATES = {
   },
   kaveri_round: {
     label: 'Kaveri Round',
-    description: 'Full dossier for Kaveri review — all rounds, scores, feedback',
+    description: 'All rounds summary for Kaveri review — scores and feedback',
   },
   vijay_round: {
     label: 'Vijay Round',
-    description: 'Full dossier for final round — complete candidate history',
+    description: 'All rounds summary for final round — complete candidate history',
   },
 };
 

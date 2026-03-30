@@ -4,7 +4,7 @@
 // ── ROLE-BASED ACCESS CONFIG ──
 const ACCESS = {
   admins:     ['arth.mohan@peepalconsulting.com'],
-  recruiters: ['ramya.h@peepalconsulting.com','krishna.kumar@peepalconsulting.com','aditi.kaul@peepalconsulting.com','subhiksha.k@peepalconsulting.com','renjith.k@peepalconsulting.com'],
+  recruiters: ['ramya.h@peepalconsulting.com','krishna.kumar@peepalconsulting.com','aditi.kaul@peepalconsulting.com','renjith.k@peepalconsulting.com'],
   managers:   ['ravi.kant.sharma@peepalconsulting.com','ambika.s@peepalconsulting.com','shiwala.dubey@peepalconsulting.com','parv.u@peepalconsulting.com','ramakrishna.d@peepalconsulting.com','rohan.p@peepalconsulting.com'],
   kaveri:     ['kaveri.karnam@peepalconsulting.com'],
   vijay:      ['vijay@peepalconsulting.com'],
@@ -67,7 +67,6 @@ const KNOWN_PEOPLE = [
   { name: 'Krishna',   email: 'krishna.kumar@peepalconsulting.com' },
   { name: 'Aditi',     email: 'aditi.kaul@peepalconsulting.com' },
   { name: 'Renjith',   email: 'renjith.k@peepalconsulting.com' },
-  { name: 'Subhiksha', email: 'subhiksha.k@peepalconsulting.com' },
   { name: 'Kaveri',    email: 'kaveri.karnam@peepalconsulting.com' },
   { name: 'Ravikant',  email: 'ravi.kant.sharma@peepalconsulting.com' },
   { name: 'Ambika',    email: 'ambika.s@peepalconsulting.com' },
@@ -589,7 +588,7 @@ async function saveFeedback() {
 // ── EMAIL COMPOSER ──
 function buildEmailComposer(c, pipeline) {
   const stageOptions = [
-    `<option value="all_rounds">📋 All Rounds (full dossier)</option>`,
+    `<option value="all_rounds">📋 All Rounds Summary</option>`,
     ...pipeline.map(s => `<option value="${s.toLowerCase().replace(/\s+/g,'_')}">${escHtml(s)}</option>`)
   ].join('');
 
@@ -623,7 +622,7 @@ function buildEmailComposer(c, pipeline) {
         <div style="margin-bottom:14px">
           <div class="feedback-section-title">Subject</div>
           <input type="text" id="email-subject-input" class="filter-input" style="width:100%;height:36px"
-            value="[Full Dossier — All Rounds] ${escHtml(c.name)} — ${escHtml(c.role)} | Peepal Consulting"
+            value="[All Rounds Summary] ${escHtml(c.name)} — ${escHtml(c.role)} | Peepal Consulting"
             oninput="refreshEmailPreview()">
         </div>
 
@@ -689,7 +688,7 @@ function buildEmailPreviewHtml(c, stage, customMsg, includeProfile, includeFeedb
   const accent = DEPT_ACCENT[c.department] || '#283593';
   const bg     = DEPT_BG[c.department]     || '#F5F5F5';
   const stageLabel = stage === 'all_rounds'
-    ? 'Full Dossier — All Rounds'
+    ? 'All Rounds Summary'
     : stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   const candidateProfileUrl = getCandidateProfileUrl(c);
 
@@ -739,7 +738,7 @@ function buildEmailPreviewHtml(c, stage, customMsg, includeProfile, includeFeedb
   return `
     <div style="background:#1A1A2E;padding:20px 24px">
       <p style="margin:0;color:#A0A8C8;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Peepal Consulting — Hiring Portal</p>
-      <h1 style="margin:4px 0 0;color:white;font-size:18px;font-weight:800">${stageLabel} Dossier</h1>
+      <h1 style="margin:4px 0 0;color:white;font-size:18px;font-weight:800">${stageLabel}</h1>
     </div>
     <div style="background:${bg};padding:10px 24px;border-left:4px solid ${accent}">
       <span style="font-size:10px;font-weight:800;color:${accent};text-transform:uppercase;letter-spacing:1px">${c.department || ''}</span>
@@ -772,7 +771,7 @@ function refreshEmailPreview() {
 
   // Update subject
   const stageLabel = stage === 'all_rounds'
-    ? 'Full Dossier — All Rounds'
+    ? 'All Rounds Summary'
     : stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   const subjectInput = document.getElementById('email-subject-input');
   if (subjectInput && !subjectInput.dataset.userEdited) {

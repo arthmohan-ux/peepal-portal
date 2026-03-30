@@ -408,10 +408,12 @@ function renderFunnelSection() {
       </div>
     </div>
     <div class="section-body">
-      <table class="funnel-table">
-        <thead><tr>${headerCells}</tr></thead>
-        <tbody>${bodyRows}</tbody>
-      </table>
+      <div class="table-scroll-shell">
+        <table class="funnel-table">
+          <thead><tr>${headerCells}</tr></thead>
+          <tbody>${bodyRows}</tbody>
+        </table>
+      </div>
       <div class="legend">
         <div class="legend-item"><div class="legend-dot" style="background:#FEE2E2"></div>Reject / Drop</div>
         <div class="legend-item"><div class="legend-dot" style="background:#FEF9C3"></div>Pending</div>
@@ -504,10 +506,12 @@ function renderTATSection() {
       <button class="section-tab ${tatScope === 'all' ? 'active' : ''}" onclick="switchTatScope(this,'all')">All Data</button>
     </div>
     <div class="section-body">
-      <table class="tat-table">
-        <thead><tr>${headerCells}</tr></thead>
-        <tbody>${bodyRows}</tbody>
-      </table>
+      <div class="table-scroll-shell">
+        <table class="tat-table">
+          <thead><tr>${headerCells}</tr></thead>
+          <tbody>${bodyRows}</tbody>
+        </table>
+      </div>
     </div>`;
   return wrap;
 }
