@@ -86,7 +86,7 @@ function isTaRoleCandidate(candidate) {
   if (!candidate) return false;
   const dept = String(candidate.department || '').trim();
   const role = String(candidate.role || '').trim();
-  return dept === 'TA' || /(?:^| )TA$/.test(role) || role.includes('- TA');
+  return dept === 'TA' || /(?:^|[\s(])TA(?:\)|\s*)$/.test(role) || /\s-\sTA$/.test(role);
 }
 
 function getFeedbackMinimumWords(candidate) {

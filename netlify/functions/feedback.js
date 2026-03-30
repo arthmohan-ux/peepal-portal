@@ -81,7 +81,7 @@ function canWriteFeedback(email, managerName, stage) {
 function isTaRole(department, role) {
   const dept = String(department || '').trim();
   const roleName = String(role || '').trim();
-  return dept === 'TA' || /(?:^| )TA$/.test(roleName) || roleName.includes('- TA');
+  return dept === 'TA' || /(?:^|[\s(])TA(?:\)|\s*)$/.test(roleName) || /\s-\sTA$/.test(roleName);
 }
 
 function getNotesMinimumWords(department, role) {
