@@ -5,7 +5,7 @@
 const ACCESS = {
   admins:     ['arth.mohan@peepalconsulting.com'],
   recruiters: ['ramya.h@peepalconsulting.com','krishna.kumar@peepalconsulting.com','aditi.kaul@peepalconsulting.com','renjith.k@peepalconsulting.com'],
-  managers:   ['ravi.kant.sharma@peepalconsulting.com','ambika.s@peepalconsulting.com','shiwala.dubey@peepalconsulting.com','parv.u@peepalconsulting.com','ramakrishna.d@peepalconsulting.com','rohan.p@peepalconsulting.com'],
+  managers:   ['ravi.kant.sharma@peepalconsulting.com','ambika.s@peepalconsulting.com','shiwala.dubey@peepalconsulting.com','parv.u@peepalconsulting.com','ramakrishna.d@peepalconsulting.com','rohan.p@peepalconsulting.com','rupa.moogi@peepalconsulting.com'],
   kaveri:     ['kaveri.karnam@peepalconsulting.com'],
   vijay:      ['vijay@peepalconsulting.com'],
 };
@@ -18,6 +18,7 @@ const MANAGER_NAME_EMAIL = {
   'Parv':      'parv.u@peepalconsulting.com',
   'Ramakrishna': 'ramakrishna.d@peepalconsulting.com',
   'Rohan':     'rohan.p@peepalconsulting.com',
+  'Rupa':      'rupa.moogi@peepalconsulting.com',
 };
 
 function getUserRole(email) {
@@ -54,6 +55,7 @@ const KNOWN_PEOPLE = [
   { name: 'Parv',      email: 'parv@peepalconsulting.com' },
   { name: 'Mayank',    email: 'mayank@peepalconsulting.com' },
   { name: 'Anil',      email: 'anil@peepalconsulting.com' },
+  { name: 'Rupa',      email: 'rupa.moogi@peepalconsulting.com' },
 ];
 const MIN_FEEDBACK_NOTES_WORDS = 30;
 
