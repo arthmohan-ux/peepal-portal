@@ -100,6 +100,49 @@
     .section-tab-content { display: none; padding: 20px; overflow-x: auto; }
     .section-tab-content.active { display: block; }
 
+    .page-tabs-shell {
+      background: white;
+      border: 1px solid var(--slate-200);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .page-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 20px;
+      border-bottom: 1px solid var(--slate-100);
+      overflow-x: auto;
+    }
+    .page-tab {
+      border: none;
+      background: none;
+      cursor: pointer;
+      padding: 14px 16px;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--slate-400);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+    }
+    .page-tab.active {
+      color: #4338CA;
+      border-bottom-color: #4338CA;
+    }
+    .page-tab-panel {
+      display: none;
+      padding: 20px;
+      background: var(--slate-50);
+    }
+    .page-tab-panel.active {
+      display: block;
+    }
+    .page-tab-panel .analytics-section {
+      border: 1px solid var(--slate-200);
+      box-shadow: 0 10px 25px rgba(15,23,42,0.04);
+    }
+
     /* Stats strip */
     .stats-strip {
       display: grid;
@@ -387,6 +430,60 @@
     .trend-month-count { font-size: 22px; font-weight: 900; color: var(--navy); line-height: 1; }
     .trend-month-sub { font-size: 9px; color: var(--slate-400); margin-top: 3px; font-weight: 600; }
 
+    .ratio-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .ratio-card {
+      background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+      border: 1px solid var(--slate-200);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .ratio-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .ratio-card-label {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      color: var(--navy);
+      text-transform: uppercase;
+    }
+    .ratio-card-meta {
+      font-size: 10px;
+      color: var(--slate-400);
+      font-weight: 700;
+      text-align: right;
+      white-space: nowrap;
+    }
+    .ratio-card-value {
+      font-size: 30px;
+      line-height: 1;
+      font-weight: 900;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+    .ratio-card-breakdown {
+      font-size: 12px;
+      color: var(--slate-700);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .ratio-card-note {
+      font-size: 11px;
+      color: var(--slate-500);
+      line-height: 1.5;
+    }
+    .ratio-card.empty .ratio-card-value {
+      color: var(--slate-300);
+    }
+
     /* Legend */
     .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
     .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 600; color: var(--slate-600); }
@@ -484,6 +581,6 @@
     </div>
   </div>
 
-  <script src="/src/analytics.js?v=1"></script>
+  <script src="/src/analytics.js?v=2"></script>
 </body>
 </html>

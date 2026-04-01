@@ -5,6 +5,7 @@ const { jwtVerify } = require('jose');
 const { google }    = require('googleapis');
 
 const SECRET = new TextEncoder().encode(process.env.SESSION_SECRET);
+const STATUS_COL_A1 = 'S';
 
 const COLS = {
   SOURCING_DATE: 0, NAME: 1, RESUME_LINK: 2, LINKEDIN: 3, CONTACT: 4,
@@ -40,11 +41,59 @@ function getSheetClient() {
   return google.sheets({ version: 'v4', auth });
 }
 
-function rowToCandidate(row, rowIndex) {
+function parseStatusTimestamp(value) {
+  const match = String(value || '').trim().match(/^(\d{2})-([A-Za-z]{3})-(\d{4})\s+(\d{2}):(\d{2})$/);
+  if (!match) return null;
+
+  const monthMap = { Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5, Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11 };
+  const month = monthMap[match[2]];
+  if (month === undefined) return null;
+
+  return new Date(
+    Number(match[3]),
+    month,
+    Number(match[1]),
+    Number(match[4]),
+    Number(match[5]),
+    0,
+    0
+  ).toISOString();
+}
+
+function parseStatusHistory(note) {
+  if (!note || !String(note).trim()) return [];
+
+  return String(note)
+    .split(/\n[─-]{5,}\n/g)
+    .map(chunk => chunk.trim())
+    .filter(Boolean)
+    .map(chunk => {
+      const lines = chunk.split('\n').map(line => line.trim()).filter(Boolean);
+      if (lines.length < 2) return null;
+
+      const transition = lines[1].match(/^(.*?)\s+→\s+(.*)$/);
+      if (!transition) return null;
+
+      const fromStatus = transition[1].trim();
+      const status = transition[2].trim();
+
+      return {
+        fromStatus: fromStatus === '(none)' ? null : fromStatus,
+        status: status || null,
+        changedAt: parseStatusTimestamp(lines[0]),
+        changedAtLabel: lines[0],
+      };
+    })
+    .filter(entry => entry && entry.status)
+    .reverse();
+}
+
+function rowToCandidate(row, rowIndex, statusNote) {
   const get = (col) => {
     const val = row[col];
     return val !== undefined && val !== '' ? String(val).trim() : null;
   };
+  const parsedStatusHistory = parseStatusHistory(statusNote);
   return {
     _row: rowIndex + 4,
     sourcingDate: get(COLS.SOURCING_DATE), name: get(COLS.NAME),
@@ -61,6 +110,8 @@ function rowToCandidate(row, rowIndex) {
     assessmentDate: get(COLS.ASSESSMENT_DATE), managerRoundDate: get(COLS.MANAGER_ROUND_DATE),
     kaveriRoundDate: get(COLS.KAVERI_ROUND_DATE), vijayRoundDate: get(COLS.VIJAY_ROUND_DATE),
     offeredDate: get(COLS.OFFERED_DATE), joiningDate: get(COLS.JOINING_DATE),
+    statusNote: statusNote || null,
+    statusHistory: parsedStatusHistory,
   };
 }
 
@@ -83,14 +134,23 @@ exports.handler = async (event) => {
     const sheets    = getSheetClient();
     const sheetName = process.env.MASTER_SHEET_NAME || 'Master Tracker';
 
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: process.env.SHEET_ID,
-      range: `'${sheetName}'!A4:AB`,
-    });
+    const [valuesResponse, notesResponse] = await Promise.all([
+      sheets.spreadsheets.values.get({
+        spreadsheetId: process.env.SHEET_ID,
+        range: `'${sheetName}'!A4:AB`,
+      }),
+      sheets.spreadsheets.get({
+        spreadsheetId: process.env.SHEET_ID,
+        ranges: [`'${sheetName}'!${STATUS_COL_A1}4:${STATUS_COL_A1}`],
+        includeGridData: true,
+        fields: 'sheets(data(rowData(values(note))))',
+      }),
+    ]);
 
-    const rows = response.data.values || [];
+    const rows = valuesResponse.data.values || [];
+    const noteRows = notesResponse.data.sheets?.[0]?.data?.[0]?.rowData || [];
     const candidates = rows
-      .map((row, i) => rowToCandidate(row, i))
+      .map((row, i) => rowToCandidate(row, i, noteRows[i]?.values?.[0]?.note || ''))
       .filter(c => c.name && c.name.length > 0);
 
     return {

@@ -82,6 +82,22 @@ const ACTIVE_POST_APTITUDE_STATUSES = new Set([
   'Vijay Feedback Pending',
 ]);
 
+const ROLE_DROPDOWN_STATUSES = new Set([
+  'Assessment Pending',
+  'Assesment Under Review',
+  'AI Interview Pending',
+  'Manager Round Pending',
+  'Manager Feedback Pending',
+  'Kaveri Round Pending',
+  'Kaveri Feedback Pending',
+  'Vijay Round Pending',
+  'Vijay Feedback Pending',
+  'Final Select',
+  'Offered',
+  'Joined',
+  'Hold',
+]);
+
 const OPEN_STAGE_ORDER = [
   'Assessment Pending',
   'Assesment Under Review',
@@ -105,6 +121,30 @@ const STAGE_DATE_FIELD = {
   'Joined':        'joiningDate',
 };
 
+const CURRENT_STATUS_TO_STAGE = {
+  'Screen Reject': 'Screening',
+  'Hold': 'Screening',
+  'Drop': 'Screening',
+  'Aptitude Pending': 'Aptitude',
+  'Aptitude Reject': 'Aptitude',
+  'Test Reject': 'Aptitude',
+  'Aptitude Select': 'Aptitude',
+  'Assessment Pending': 'Assessment',
+  'Assessment Reject': 'Assessment',
+  'Assesment Under Review': 'Assessment',
+  'AI Interview Pending': 'AI Interview',
+  'AI Interview Reject': 'AI Interview',
+  'Manager Round Pending': 'Manager Round',
+  'Manager Feedback Pending': 'Manager Round',
+  'Manager Round Reject': 'Manager Round',
+  'Kaveri Round Pending': 'Kaveri Round',
+  'Kaveri Feedback Pending': 'Kaveri Round',
+  'Kaveri Reject': 'Kaveri Round',
+  'Vijay Round Pending': 'Vijay Round',
+  'Vijay Feedback Pending': 'Vijay Round',
+  'Vijay Reject': 'Vijay Round',
+};
+
 const DEPT_COLOURS = {
   'TA':               '#6366F1',
   'BD':               '#1565C0',
@@ -114,13 +154,26 @@ const DEPT_COLOURS = {
   "Founder's Office": '#AD1457',
 };
 
+const MULTI_SELECT_CONFIG = {
+  filterDept: { placeholder: 'All Departments', singular: 'Department', plural: 'Departments' },
+  filterRole: { placeholder: 'All Roles', singular: 'Role', plural: 'Roles' },
+  filterMonth: { placeholder: 'All Months', singular: 'Month', plural: 'Months' },
+};
+
 // ── STATE ──
 let rawCandidates = [];
 let filtered = [];
 let tatScope = 'filtered';
+let analyticsMainTab = 'pipeline';
+let multiSelectState = {
+  filterDept: [],
+  filterRole: [],
+  filterMonth: [],
+};
 
 // ── INIT ──
 document.addEventListener('DOMContentLoaded', async () => {
+  initMultiSelects();
   // Auth check
   try {
     const res = await fetch('/api/me');
@@ -167,6 +220,8 @@ async function loadData() {
 
 // ── FILTER HELPERS ──
 function populateFilterDropdowns() {
+  populateDepartmentFilter();
+
   // Recruiters
   const recEl = document.getElementById('filterRecruiter');
   const recruiters = [...new Set(rawCandidates.map(c => c.recruiter).filter(Boolean))].sort();
@@ -174,21 +229,28 @@ function populateFilterDropdowns() {
   recruiters.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r; recEl.appendChild(o); });
 
   // Months (from sourcingDate)
-  const monthEl = document.getElementById('filterMonth');
   const months = [...new Set(rawCandidates.map(c => getMonthLabel(c.sourcingDate)).filter(Boolean))];
   months.sort((a, b) => new Date('1 ' + a) - new Date('1 ' + b));
-  monthEl.innerHTML = '<option value="">All Months</option>';
-  months.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; monthEl.appendChild(o); });
+  const currentMonths = getMultiSelectValues('filterMonth');
+  setMultiSelectOptions('filterMonth', months, currentMonths.filter(month => months.includes(month)));
 }
 
-function onDeptChange() {
-  const dept = document.getElementById('filterDept').value;
-  const roleEl = document.getElementById('filterRole');
-  const roles = dept ? (DEPT_ROLES[dept] || []) : Object.values(DEPT_ROLES).flat();
-  roleEl.innerHTML = '<option value="">All Roles</option>';
-  roles.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r; roleEl.appendChild(o); });
-  roleEl.value = '';
-  applyFilters();
+function populateDepartmentFilter() {
+  setMultiSelectOptions('filterDept', Object.keys(DEPT_ROLES), getMultiSelectValues('filterDept'));
+  rebuildRoleFilter();
+}
+
+function rebuildRoleFilter() {
+  const selectedDepts = getMultiSelectValues('filterDept');
+  const currentRoles = getMultiSelectValues('filterRole');
+  const roles = selectedDepts.length
+    ? [...new Set(selectedDepts.reduce((allRoles, dept) => {
+        allRoles.push(...(DEPT_ROLES[dept] || []));
+        return allRoles;
+      }, []))]
+    : [...new Set(Object.values(DEPT_ROLES).flat())];
+  const preservedRoles = currentRoles.filter(role => roles.includes(role));
+  setMultiSelectOptions('filterRole', roles, preservedRoles);
 }
 
 function applyFilters() {
@@ -197,17 +259,14 @@ function applyFilters() {
 }
 
 function clearFilters() {
-  ['filterDept','filterRole','filterRecruiter','filterMonth'].forEach(id => {
+  ['filterRecruiter'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
-  const roleEl = document.getElementById('filterRole');
-  if (roleEl) {
-    roleEl.innerHTML = '<option value="">All Roles</option>';
-    Object.values(DEPT_ROLES).flat().forEach(r => {
-      const o = document.createElement('option'); o.value = r; o.textContent = r; roleEl.appendChild(o);
-    });
-  }
+  setMultiSelectValues('filterDept', []);
+  setMultiSelectValues('filterRole', []);
+  setMultiSelectValues('filterMonth', []);
+  rebuildRoleFilter();
   applyFilters();
 }
 
@@ -216,27 +275,8 @@ function renderAll() {
   const content = document.getElementById('analytics-content');
   content.innerHTML = '';
 
-  // 1. Summary stats
   content.appendChild(renderSummaryStats());
-
-  // 2. Pipeline funnel
-  content.appendChild(renderFunnelSection());
-
-  // 3. TAT analysis
-  content.appendChild(renderTATSection());
-
-  // 4. Open stage aging
-  content.appendChild(renderOpenStageAgingSection());
-
-  // 5. Dept + recruiter (side by side on wide screens)
-  const row = document.createElement('div');
-  row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:28px;';
-  row.appendChild(renderDeptBreakdown());
-  row.appendChild(renderRecruiterPerformance());
-  content.appendChild(row);
-
-  // 6. Month-over-month trend
-  content.appendChild(renderMonthTrend());
+  content.appendChild(renderMainTabsSection());
 }
 
 // ── 1. SUMMARY STATS ──
@@ -244,14 +284,22 @@ function renderSummaryStats() {
   const total    = filtered.length;
   const joined   = filtered.filter(c => c.status === 'Joined').length;
   const selected = filtered.filter(c => ['Final Select','Offered'].includes(c.status)).length;
-  const month    = document.getElementById('filterMonth')?.value || '';
+  const months   = getMultiSelectValues('filterMonth');
+  const monthLabel = months.length === 1 ? months[0] : '';
   const activePool = getCandidatesMatchingFilters({ includeMonth: false }).filter(c => ACTIVE_POST_APTITUDE_STATUSES.has(c.status));
-  const activeMonth = month || getLatestMonthLabel(activePool.map(c => getCandidateLastActivityDate(c)));
+  const activeMonth = monthLabel || getLatestMonthLabel(activePool.map(c => getCandidateLastActivityDate(c)));
   const active   = activePool.filter(c => !activeMonth || getMonthLabel(getCandidateLastActivityDate(c)) === activeMonth).length;
   const convRate = total > 0 ? Math.round(((joined + selected) / total) * 100) : 0;
+  const activeSub = months.length > 1
+    ? `latest activity across ${months.length} selected months`
+    : activeMonth
+      ? `latest activity in ${escHtml(activeMonth)}`
+      : 'pending at a stage';
 
-  const dept = document.getElementById('filterDept')?.value;
-  const activeDepts = dept ? [dept] : DEPT_ORDER.filter(d => filtered.some(c => c.department === d));
+  const selectedDepts = getMultiSelectValues('filterDept');
+  const activeDepts = selectedDepts.length
+    ? selectedDepts
+    : DEPT_ORDER.filter(d => filtered.some(c => c.department === d));
 
   const wrap = document.createElement('div');
   wrap.className = 'analytics-section';
@@ -272,7 +320,7 @@ function renderSummaryStats() {
         <div class="stat-card">
           <div class="stat-card-label">Active in Pipeline</div>
           <div class="stat-card-value" style="color:#4338CA">${active}</div>
-          <div class="stat-card-sub">${activeMonth ? `latest activity in ${escHtml(activeMonth)}` : 'pending at a stage'}</div>
+          <div class="stat-card-sub">${activeSub}</div>
         </div>
         <div class="stat-card">
           <div class="stat-card-label">Selected / Offered</div>
@@ -294,6 +342,41 @@ function renderSummaryStats() {
   return wrap;
 }
 
+function renderMainTabsSection() {
+  const wrap = document.createElement('div');
+  wrap.className = 'page-tabs-shell';
+
+  const tabs = document.createElement('div');
+  tabs.className = 'page-tabs';
+  tabs.innerHTML = `
+    <button class="page-tab ${analyticsMainTab === 'pipeline' ? 'active' : ''}" onclick="switchAnalyticsMainTab(this,'pipeline-panel','pipeline')">Pipeline Funnel</button>
+    <button class="page-tab ${analyticsMainTab === 'tat' ? 'active' : ''}" onclick="switchAnalyticsMainTab(this,'tat-panel','tat')">TAT</button>
+    <button class="page-tab ${analyticsMainTab === 'ratios' ? 'active' : ''}" onclick="switchAnalyticsMainTab(this,'ratios-panel','ratios')">Ratios</button>
+  `;
+
+  const pipelinePanel = document.createElement('div');
+  pipelinePanel.id = 'pipeline-panel';
+  pipelinePanel.className = `page-tab-panel ${analyticsMainTab === 'pipeline' ? 'active' : ''}`;
+  pipelinePanel.appendChild(renderFunnelSection());
+
+  const tatPanel = document.createElement('div');
+  tatPanel.id = 'tat-panel';
+  tatPanel.className = `page-tab-panel ${analyticsMainTab === 'tat' ? 'active' : ''}`;
+  tatPanel.appendChild(renderTATSection());
+
+  const ratioPanel = document.createElement('div');
+  ratioPanel.id = 'ratios-panel';
+  ratioPanel.className = `page-tab-panel ${analyticsMainTab === 'ratios' ? 'active' : ''}`;
+  ratioPanel.appendChild(renderRatiosSection());
+
+  wrap.appendChild(tabs);
+  wrap.appendChild(pipelinePanel);
+  wrap.appendChild(tatPanel);
+  wrap.appendChild(ratioPanel);
+
+  return wrap;
+}
+
 // ── 2. PIPELINE FUNNEL ──
 function renderFunnelSection() {
   const wrap = document.createElement('div');
@@ -301,8 +384,14 @@ function renderFunnelSection() {
 
   // Build stage counts per role
   const stageCounts = {};
+  const roleCandidates = {};
   for (const c of filtered) {
-    if (!c.role || !c.status) continue;
+    if (!c.role) continue;
+    if (ROLE_DROPDOWN_STATUSES.has(c.status)) {
+      if (!roleCandidates[c.role]) roleCandidates[c.role] = [];
+      roleCandidates[c.role].push(c);
+    }
+    if (!c.status) continue;
     if (!VALID_FUNNEL_STATUSES.has(c.status)) continue;
     if (!stageCounts[c.role]) stageCounts[c.role] = {};
     stageCounts[c.role][c.status] = (stageCounts[c.role][c.status] || 0) + 1;
@@ -340,7 +429,7 @@ function renderFunnelSection() {
     const counts = stageCounts[rl];
     const total  = Object.values(counts).reduce((a, b) => a + b, 0);
     const sourced = total;
-    bodyRows += `<tr><td>${escHtml(rl)}</td><td><span class="dept-badge dept-${dept.replace(/\s+/g,'-').replace(/'/g,'')}">${escHtml(dept)}</span></td>`;
+    bodyRows += `<tr><td>${buildRoleCell(rl, roleCandidates[rl] || [])}</td><td><span class="dept-badge dept-${dept.replace(/\s+/g,'-').replace(/'/g,'')}">${escHtml(dept)}</span></td>`;
     bodyRows += `<td><span class="sourced-count">${sourced}</span></td>`;
     orderedStatuses.forEach(s => {
       const cnt = counts[s] || 0;
@@ -386,13 +475,14 @@ function renderTATSection() {
   const tatData = buildTatData(sourceCandidates);
 
   // Determine which roles to show based on filter
-  const filterDept = document.getElementById('filterDept')?.value;
-  const filterRole = document.getElementById('filterRole')?.value;
-  let tatRoles = filterRole
-    ? [filterRole].filter(r => tatData[r])
-    : filterDept
-      ? (DEPT_ROLES[filterDept] || []).filter(r => tatData[r])
+  const filterDepts = getMultiSelectValues('filterDept');
+  const filterRoles = getMultiSelectValues('filterRole');
+  let tatRoles = filterRoles.length
+    ? filterRoles.filter(r => tatData[r])
+    : filterDepts.length
+      ? filterDepts.flatMap(dept => (DEPT_ROLES[dept] || []).filter(r => tatData[r]))
       : DEPT_ORDER.flatMap(d => (DEPT_ROLES[d] || []).filter(r => tatData[r]));
+  tatRoles = [...new Set(tatRoles)];
 
   if (tatRoles.length === 0) {
     wrap.innerHTML = `<div class="section-header"><div class="section-title">Average TAT (Days)</div></div><div class="empty-state">No TAT data available — fill in stage dates in the sheet.</div>`;
@@ -657,9 +747,10 @@ function renderMonthTrend() {
 
   const monthData = {};
   for (const c of filtered) {
-    bumpMonthCount(monthData, parseDate(c.sourcingDate), 'sourced');
-    bumpMonthCount(monthData, getSelectedEventDate(c), 'selected');
-    bumpMonthCount(monthData, parseDate(c.joiningDate), 'joined');
+    const sourcingDate = parseDate(c.sourcingDate);
+    bumpMonthCount(monthData, sourcingDate, 'sourced');
+    if (['Final Select','Offered'].includes(c.status)) bumpMonthCount(monthData, sourcingDate, 'selected');
+    if (c.status === 'Joined') bumpMonthCount(monthData, sourcingDate, 'joined');
   }
 
   const months = sortMonthLabels(Object.keys(monthData));
@@ -683,7 +774,7 @@ function renderMonthTrend() {
   wrap.innerHTML = `
     <div class="section-header">
       <div class="section-title">Month-over-Month Trend</div>
-      <div class="section-subtitle">Current filtered candidate set · event month based on each metric's own date field · ${months.length} months of data</div>
+      <div class="section-subtitle">Current filtered candidate set grouped by sourcing month · ${months.length} months of data</div>
     </div>
     <div class="section-tabs">
       <button class="section-tab active" onclick="switchTrendTab(this,'tab-sourced')">Sourced</button>
@@ -703,9 +794,140 @@ function renderMonthTrend() {
   return wrap;
 }
 
+function renderRatiosSection() {
+  const wrap = document.createElement('div');
+  wrap.className = 'analytics-section';
+
+  const metrics = buildRatioMetrics(filtered);
+  const cards = metrics.map(renderRatioCard).join('');
+
+  wrap.innerHTML = `
+    <div class="section-header">
+      <div>
+        <div class="section-title">Conversion Ratios</div>
+        <div class="section-subtitle">Every card respects the current global filters and counts each candidate only once per metric</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="ratio-grid">${cards}</div>
+    </div>`;
+
+  return wrap;
+}
+
+function renderRatioCard(metric) {
+  const hasData = metric.denominator > 0;
+  const percentage = hasData ? `${Math.round((metric.numerator / metric.denominator) * 100)}%` : '—';
+  const cardClass = `ratio-card${hasData ? '' : ' empty'}`;
+  const meta = hasData ? `${metric.numerator} / ${metric.denominator}` : 'No applicable candidates';
+
+  return `
+    <article class="${cardClass}">
+      <div class="ratio-card-head">
+        <div class="ratio-card-label">${escHtml(metric.label)}</div>
+        <div class="ratio-card-meta">${escHtml(meta)}</div>
+      </div>
+      <div class="ratio-card-value">${percentage}</div>
+      <div class="ratio-card-breakdown">${escHtml(metric.breakdown)}</div>
+      <div class="ratio-card-note">${escHtml(metric.note)}</div>
+    </article>`;
+}
+
+function buildRatioMetrics(candidates) {
+  const totalSourced = candidates.length;
+  const interviewCount = candidates.filter(hasAnyInterview).length;
+  const managerCandidates = candidates.filter(c => hasReachedStage(c, 'Manager Round')).length;
+  const managerSelected = candidates.filter(c => hasClearedStage(c, 'Manager Round')).length;
+  const kaveriCandidates = candidates.filter(c => hasReachedStage(c, 'Kaveri Round')).length;
+  const kaveriSelected = candidates.filter(c => hasClearedStage(c, 'Kaveri Round')).length;
+  const vijayCandidates = candidates.filter(c => hasReachedStage(c, 'Vijay Round')).length;
+  const vijaySelected = candidates.filter(c => hasClearedStage(c, 'Vijay Round')).length;
+  const everOffered = candidates.filter(hasEverBeenOffered).length;
+  const joined = candidates.filter(hasJoined).length;
+  const offeredFromInterviews = candidates.filter(c => hasAnyInterview(c) && hasEverBeenOffered(c)).length;
+  const joinedFromInterviews = candidates.filter(c => hasAnyInterview(c) && hasJoined(c)).length;
+  const offerDropouts = candidates.filter(c => hasEverBeenOffered(c) && isOfferDeclined(c)).length;
+
+  return [
+    {
+      label: 'CV to Interview Rate',
+      numerator: interviewCount,
+      denominator: totalSourced,
+      breakdown: `${interviewCount} interviewed out of ${totalSourced} sourced`,
+      note: 'Counts a candidate once if they reached any interview round at least once.',
+    },
+    {
+      label: 'Manager Select Rate',
+      numerator: managerSelected,
+      denominator: managerCandidates,
+      breakdown: `${managerSelected} selected after manager out of ${managerCandidates} who reached manager`,
+      note: 'Later-stage movement or later-stage rejection still counts as manager selected.',
+    },
+    {
+      label: 'Kaveri Select Rate',
+      numerator: kaveriSelected,
+      denominator: kaveriCandidates,
+      breakdown: `${kaveriSelected} selected after Kaveri out of ${kaveriCandidates} who reached Kaveri`,
+      note: 'Any later Vijay or terminal stage counts as clearing the Kaveri round.',
+    },
+    {
+      label: 'Vijay Select Rate',
+      numerator: vijaySelected,
+      denominator: vijayCandidates,
+      breakdown: `${vijaySelected} selected after Vijay out of ${vijayCandidates} who reached Vijay`,
+      note: 'Final Select, Offered, Offer Dropout, or Joined counts as clearing Vijay.',
+    },
+    {
+      label: 'Interview to Offer Rate',
+      numerator: offeredFromInterviews,
+      denominator: interviewCount,
+      breakdown: `${offeredFromInterviews} offered out of ${interviewCount} interviewed`,
+      note: 'Uses candidates who ever had an interview and ever had Offered at any point.',
+    },
+    {
+      label: 'Interview to Joining Rate',
+      numerator: joinedFromInterviews,
+      denominator: interviewCount,
+      breakdown: `${joinedFromInterviews} joined out of ${interviewCount} interviewed`,
+      note: 'Counts a candidate once if they had any interview and eventually joined.',
+    },
+    {
+      label: 'Offer to Joining Rate',
+      numerator: joined,
+      denominator: everOffered,
+      breakdown: `${joined} joined out of ${everOffered} ever offered`,
+      note: 'Offer denominator includes current or past offered candidates within the active filters.',
+    },
+    {
+      label: 'Offer Decline Rate',
+      numerator: offerDropouts,
+      denominator: everOffered,
+      breakdown: `${offerDropouts} offer dropouts out of ${everOffered} ever offered`,
+      note: 'Counts candidates who had Offered at some point and are currently at Offer Dropout.',
+    },
+    {
+      label: 'Overall CV to Joining Rate',
+      numerator: joined,
+      denominator: totalSourced,
+      breakdown: `${joined} joined out of ${totalSourced} sourced`,
+      note: 'The broadest top-of-funnel conversion across the currently filtered population.',
+    },
+  ];
+}
+
 function switchTatScope(btn, scope) {
   tatScope = scope;
   renderAll();
+}
+
+function switchAnalyticsMainTab(btn, panelId, tabKey) {
+  analyticsMainTab = tabKey;
+  const shell = btn.closest('.page-tabs-shell');
+  if (!shell) return;
+  shell.querySelectorAll('.page-tab').forEach(tab => tab.classList.remove('active'));
+  shell.querySelectorAll('.page-tab-panel').forEach(panel => panel.classList.remove('active'));
+  btn.classList.add('active');
+  shell.querySelector('#' + panelId)?.classList.add('active');
 }
 
 function switchTrendTab(btn, tabId) {
@@ -714,6 +936,126 @@ function switchTrendTab(btn, tabId) {
   section.querySelectorAll('.section-tab-content').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
   section.querySelector('#' + tabId).classList.add('active');
+}
+
+function buildRoleCell(role, candidates) {
+  const sortedCandidates = [...candidates].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  if (!sortedCandidates.length) {
+    return `<div class="role-cell"><div class="role-title">${escHtml(role)}</div></div>`;
+  }
+
+  const rows = sortedCandidates.map(candidate => `
+    <tr>
+      <td>
+        <a class="role-candidate-name" href="${escAttr(getCandidateAnalyticsLink(candidate))}" target="_blank" rel="noopener noreferrer">
+          ${escHtml(candidate.name || 'Unnamed Candidate')}
+        </a>
+      </td>
+      <td class="role-candidate-status">${escHtml(candidate.status || 'Unknown')}</td>
+    </tr>
+  `).join('');
+
+  return `
+    <div class="role-cell">
+      <div class="role-title">${escHtml(role)}</div>
+      <details class="role-candidates">
+        <summary>View candidates</summary>
+        <div class="role-candidate-list">
+          <table class="role-candidate-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Current Status</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </details>
+    </div>`;
+}
+
+function initMultiSelects() {
+  Object.keys(MULTI_SELECT_CONFIG).forEach(id => {
+    const root = document.getElementById(id);
+    const menu = root?.querySelector('.multi-select-menu');
+    if (!root || !menu) return;
+    menu.addEventListener('change', () => handleMultiSelectChange(id));
+  });
+
+  document.addEventListener('click', (event) => {
+    document.querySelectorAll('.multi-select.open').forEach(el => {
+      if (!el.contains(event.target)) el.classList.remove('open');
+    });
+  });
+}
+
+function toggleMultiSelect(id, event) {
+  event?.stopPropagation();
+  const root = document.getElementById(id);
+  if (!root) return;
+  if (id === 'filterRole') rebuildRoleFilter();
+  const isOpen = root.classList.contains('open');
+  document.querySelectorAll('.multi-select.open').forEach(el => el.classList.remove('open'));
+  if (!isOpen) root.classList.add('open');
+}
+
+function handleMultiSelectChange(id) {
+  const root = document.getElementById(id);
+  if (root) {
+    multiSelectState[id] = [...root.querySelectorAll('input[type="checkbox"]:checked')].map(input => input.value);
+  }
+  if (id === 'filterDept') rebuildRoleFilter();
+  updateMultiSelectTrigger(id);
+  applyFilters();
+}
+
+function setMultiSelectOptions(id, options, selectedValues = []) {
+  const root = document.getElementById(id);
+  const menu = root?.querySelector('.multi-select-menu');
+  if (!root || !menu) return;
+
+  const normalized = options.map(option => typeof option === 'string' ? { value: option, label: option } : option);
+  const selected = new Set(selectedValues);
+  multiSelectState[id] = [...selected];
+  menu.innerHTML = normalized.map(option => `
+    <label class="multi-select-option">
+      <input type="checkbox" value="${escHtml(option.value)}" ${selected.has(option.value) ? 'checked' : ''}>
+      <span>${escHtml(option.label)}</span>
+    </label>
+  `).join('');
+
+  updateMultiSelectTrigger(id);
+}
+
+function setMultiSelectValues(id, values) {
+  const root = document.getElementById(id);
+  const inputs = root?.querySelectorAll('input[type="checkbox"]');
+  if (!inputs) return;
+  const selected = new Set(values);
+  multiSelectState[id] = [...selected];
+  inputs.forEach(input => { input.checked = selected.has(input.value); });
+  updateMultiSelectTrigger(id);
+}
+
+function getMultiSelectValues(id) {
+  return [...(multiSelectState[id] || [])];
+}
+
+function updateMultiSelectTrigger(id) {
+  const root = document.getElementById(id);
+  const trigger = root?.querySelector('.multi-select-trigger');
+  const config = MULTI_SELECT_CONFIG[id];
+  if (!trigger || !config) return;
+
+  const selected = getMultiSelectValues(id);
+  if (!selected.length) {
+    trigger.textContent = config.placeholder;
+  } else if (selected.length === 1) {
+    trigger.textContent = selected[0];
+  } else {
+    trigger.textContent = `${selected.length} ${config.plural}`;
+  }
 }
 
 function buildTatData(candidates) {
@@ -788,21 +1130,21 @@ function parseDate(val) {
 }
 
 function getCandidatesMatchingFilters({ includeMonth = true, monthMode = 'sourcing' } = {}) {
-  const dept      = document.getElementById('filterDept')?.value || '';
-  const role      = document.getElementById('filterRole')?.value || '';
+  const depts     = getMultiSelectValues('filterDept');
+  const roles     = getMultiSelectValues('filterRole');
   const recruiter = document.getElementById('filterRecruiter')?.value || '';
-  const month     = document.getElementById('filterMonth')?.value || '';
+  const months    = getMultiSelectValues('filterMonth');
 
   return rawCandidates.filter(c => {
-    if (dept      && c.department !== dept) return false;
-    if (role      && c.role       !== role) return false;
+    if (depts.length && !depts.includes(c.department)) return false;
+    if (roles.length && !roles.includes(c.role)) return false;
     if (recruiter && c.recruiter  !== recruiter) return false;
-    if (!includeMonth || !month) return true;
+    if (!includeMonth || !months.length) return true;
 
     const monthDate = monthMode === 'lastActivity'
       ? getCandidateLastActivityDate(c)
       : parseDate(c.sourcingDate);
-    return getMonthLabel(monthDate) === month;
+    return months.includes(getMonthLabel(monthDate));
   });
 }
 
@@ -838,24 +1180,6 @@ function getStageEntryDate(candidate, stage, pipeline = getRolePipeline(candidat
   return getStageDate(candidate, previousStage);
 }
 
-function getLatestCompletedStageDate(candidate) {
-  const pipeline = getRolePipeline(candidate.role);
-  let latest = null;
-  for (const stage of pipeline) {
-    if (stage === 'Screening') continue;
-    const date = getStageDate(candidate, stage);
-    if (date && (!latest || date > latest)) latest = date;
-  }
-  return latest;
-}
-
-function getSelectedEventDate(candidate) {
-  const offeredDate = parseDate(candidate.offeredDate);
-  if (offeredDate) return offeredDate;
-  if (candidate.status === 'Final Select') return getLatestCompletedStageDate(candidate);
-  return null;
-}
-
 function getCandidateLastActivityDate(candidate) {
   const dates = [
     parseDate(candidate.sourcingDate),
@@ -868,6 +1192,113 @@ function getCandidateLastActivityDate(candidate) {
     parseDate(candidate.joiningDate),
   ].filter(Boolean);
   return dates.sort((a, b) => b - a)[0] || null;
+}
+
+function hasAnyInterview(candidate) {
+  return ['Assessment', 'AI Interview', 'Manager Round', 'Kaveri Round', 'Vijay Round']
+    .some(stage => hasReachedStage(candidate, stage));
+}
+
+function hasReachedStage(candidate, stage) {
+  const pipeline = getRolePipeline(candidate.role);
+  if (!pipeline.includes(stage)) return false;
+  const exactMaxIndex = getHistoryMaxStageIndex(candidate, pipeline);
+  if (exactMaxIndex !== null) return exactMaxIndex >= pipeline.indexOf(stage);
+  if (getStageDate(candidate, stage)) return true;
+  return getMaxReachedStageIndex(candidate, pipeline) >= pipeline.indexOf(stage);
+}
+
+function hasClearedStage(candidate, stage) {
+  const pipeline = getRolePipeline(candidate.role);
+  const stageIndex = pipeline.indexOf(stage);
+  if (stageIndex === -1 || !hasReachedStage(candidate, stage)) return false;
+  const exactMaxIndex = getHistoryMaxStageIndex(candidate, pipeline);
+  if (exactMaxIndex !== null) return exactMaxIndex > stageIndex;
+
+  for (let i = stageIndex + 1; i < pipeline.length; i++) {
+    if (hasReachedStage(candidate, pipeline[i])) return true;
+  }
+
+  return hasTerminalStageBeyondPipeline(candidate);
+}
+
+function hasEverBeenOffered(candidate) {
+  if (hasSeenStatus(candidate, 'Offered')) return true;
+  return Boolean(parseDate(candidate.offeredDate)) || ['Offered', 'Offer Dropout', 'Joined'].includes(candidate.status);
+}
+
+function hasJoined(candidate) {
+  if (hasSeenStatus(candidate, 'Joined')) return true;
+  return Boolean(parseDate(candidate.joiningDate)) || candidate.status === 'Joined';
+}
+
+function isOfferDeclined(candidate) {
+  return candidate.status === 'Offer Dropout';
+}
+
+function getStatusTimeline(candidate) {
+  const history = Array.isArray(candidate?.statusHistory) ? candidate.statusHistory : [];
+  const statuses = history
+    .map(entry => String(entry?.status || '').trim())
+    .filter(Boolean);
+
+  const currentStatus = String(candidate?.status || '').trim();
+  if (currentStatus && !statuses.includes(currentStatus)) statuses.push(currentStatus);
+  return statuses;
+}
+
+function hasRealStatusHistory(candidate) {
+  return Array.isArray(candidate?.statusHistory) && candidate.statusHistory.length > 0;
+}
+
+function hasSeenStatus(candidate, status) {
+  return getStatusTimeline(candidate).includes(status);
+}
+
+function getHistoryMaxStageIndex(candidate, pipeline = getRolePipeline(candidate.role)) {
+  if (!hasRealStatusHistory(candidate)) return null;
+
+  let maxIndex = -1;
+  getStatusTimeline(candidate).forEach(status => {
+    const idx = getStatusStageIndex(status, pipeline);
+    if (idx > maxIndex) maxIndex = idx;
+  });
+
+  return maxIndex;
+}
+
+function getStatusStageIndex(status, pipeline) {
+  if (!status) return -1;
+  if (['Final Select', 'Offered', 'Offer Dropout', 'Joined'].includes(status)) return pipeline.length - 1;
+
+  const stage = CURRENT_STATUS_TO_STAGE[status];
+  if (!stage) return -1;
+  return pipeline.indexOf(stage);
+}
+
+function getMaxReachedStageIndex(candidate, pipeline = getRolePipeline(candidate.role)) {
+  let maxIndex = parseDate(candidate.sourcingDate) ? 0 : -1;
+
+  pipeline.forEach((stage, index) => {
+    if (stage === 'Screening') return;
+    if (getStageDate(candidate, stage)) maxIndex = Math.max(maxIndex, index);
+  });
+
+  const currentStageIndex = getCurrentStageIndex(candidate, pipeline);
+  return Math.max(maxIndex, currentStageIndex);
+}
+
+function getCurrentStageIndex(candidate, pipeline = getRolePipeline(candidate.role)) {
+  if (['Final Select', 'Offered', 'Offer Dropout', 'Joined'].includes(candidate.status)) {
+    return pipeline.length - 1;
+  }
+  const stage = CURRENT_STATUS_TO_STAGE[candidate.status];
+  if (!stage) return -1;
+  return pipeline.indexOf(stage);
+}
+
+function hasTerminalStageBeyondPipeline(candidate) {
+  return ['Final Select', 'Offered', 'Offer Dropout', 'Joined'].includes(candidate.status) || hasEverBeenOffered(candidate) || hasJoined(candidate);
 }
 
 function bumpMonthCount(monthData, date, key) {
@@ -888,9 +1319,18 @@ function getDept(role) {
   return 'Other';
 }
 
+function getCandidateAnalyticsLink(candidate) {
+  if (!candidate?._row) return '/dashboard';
+  return `${window.location.origin}/dashboard?candidate=${candidate._row}`;
+}
+
 function escHtml(str) {
   if (!str) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function escAttr(str) {
+  return escHtml(str).replace(/'/g, '&#39;');
 }
 
 function setSyncBadge(state) {

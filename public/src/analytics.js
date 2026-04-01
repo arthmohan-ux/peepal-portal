@@ -121,6 +121,30 @@ const STAGE_DATE_FIELD = {
   'Joined':        'joiningDate',
 };
 
+const CURRENT_STATUS_TO_STAGE = {
+  'Screen Reject': 'Screening',
+  'Hold': 'Screening',
+  'Drop': 'Screening',
+  'Aptitude Pending': 'Aptitude',
+  'Aptitude Reject': 'Aptitude',
+  'Test Reject': 'Aptitude',
+  'Aptitude Select': 'Aptitude',
+  'Assessment Pending': 'Assessment',
+  'Assessment Reject': 'Assessment',
+  'Assesment Under Review': 'Assessment',
+  'AI Interview Pending': 'AI Interview',
+  'AI Interview Reject': 'AI Interview',
+  'Manager Round Pending': 'Manager Round',
+  'Manager Feedback Pending': 'Manager Round',
+  'Manager Round Reject': 'Manager Round',
+  'Kaveri Round Pending': 'Kaveri Round',
+  'Kaveri Feedback Pending': 'Kaveri Round',
+  'Kaveri Reject': 'Kaveri Round',
+  'Vijay Round Pending': 'Vijay Round',
+  'Vijay Feedback Pending': 'Vijay Round',
+  'Vijay Reject': 'Vijay Round',
+};
+
 const DEPT_COLOURS = {
   'TA':               '#6366F1',
   'BD':               '#1565C0',
@@ -140,6 +164,7 @@ const MULTI_SELECT_CONFIG = {
 let rawCandidates = [];
 let filtered = [];
 let tatScope = 'filtered';
+let analyticsMainTab = 'pipeline';
 let multiSelectState = {
   filterDept: [],
   filterRole: [],
@@ -250,27 +275,8 @@ function renderAll() {
   const content = document.getElementById('analytics-content');
   content.innerHTML = '';
 
-  // 1. Summary stats
   content.appendChild(renderSummaryStats());
-
-  // 2. Pipeline funnel
-  content.appendChild(renderFunnelSection());
-
-  // 3. TAT analysis
-  content.appendChild(renderTATSection());
-
-  // 4. Open stage aging
-  content.appendChild(renderOpenStageAgingSection());
-
-  // 5. Dept + recruiter (side by side on wide screens)
-  const row = document.createElement('div');
-  row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:28px;';
-  row.appendChild(renderDeptBreakdown());
-  row.appendChild(renderRecruiterPerformance());
-  content.appendChild(row);
-
-  // 6. Month-over-month trend
-  content.appendChild(renderMonthTrend());
+  content.appendChild(renderMainTabsSection());
 }
 
 // ── 1. SUMMARY STATS ──
@@ -333,6 +339,41 @@ function renderSummaryStats() {
         </div>
       </div>
     </div>`;
+  return wrap;
+}
+
+function renderMainTabsSection() {
+  const wrap = document.createElement('div');
+  wrap.className = 'page-tabs-shell';
+
+  const tabs = document.createElement('div');
+  tabs.className = 'page-tabs';
+  tabs.innerHTML = `
+    <button class="page-tab ${analyticsMainTab === 'pipeline' ? 'active' : ''}" onclick="switchAnalyticsMainTab(this,'pipeline-panel','pipeline')">Pipeline Funnel</button>
+    <button class="page-tab ${analyticsMainTab === 'tat' ? 'active' : ''}" onclick="switchAnalyticsMainTab(this,'tat-panel','tat')">TAT</button>
+    <button class="page-tab ${analyticsMainTab === 'ratios' ? 'active' : ''}" onclick="switchAnalyticsMainTab(this,'ratios-panel','ratios')">Ratios</button>
+  `;
+
+  const pipelinePanel = document.createElement('div');
+  pipelinePanel.id = 'pipeline-panel';
+  pipelinePanel.className = `page-tab-panel ${analyticsMainTab === 'pipeline' ? 'active' : ''}`;
+  pipelinePanel.appendChild(renderFunnelSection());
+
+  const tatPanel = document.createElement('div');
+  tatPanel.id = 'tat-panel';
+  tatPanel.className = `page-tab-panel ${analyticsMainTab === 'tat' ? 'active' : ''}`;
+  tatPanel.appendChild(renderTATSection());
+
+  const ratioPanel = document.createElement('div');
+  ratioPanel.id = 'ratios-panel';
+  ratioPanel.className = `page-tab-panel ${analyticsMainTab === 'ratios' ? 'active' : ''}`;
+  ratioPanel.appendChild(renderRatiosSection());
+
+  wrap.appendChild(tabs);
+  wrap.appendChild(pipelinePanel);
+  wrap.appendChild(tatPanel);
+  wrap.appendChild(ratioPanel);
+
   return wrap;
 }
 
@@ -753,9 +794,140 @@ function renderMonthTrend() {
   return wrap;
 }
 
+function renderRatiosSection() {
+  const wrap = document.createElement('div');
+  wrap.className = 'analytics-section';
+
+  const metrics = buildRatioMetrics(filtered);
+  const cards = metrics.map(renderRatioCard).join('');
+
+  wrap.innerHTML = `
+    <div class="section-header">
+      <div>
+        <div class="section-title">Conversion Ratios</div>
+        <div class="section-subtitle">Every card respects the current global filters and counts each candidate only once per metric</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="ratio-grid">${cards}</div>
+    </div>`;
+
+  return wrap;
+}
+
+function renderRatioCard(metric) {
+  const hasData = metric.denominator > 0;
+  const percentage = hasData ? `${Math.round((metric.numerator / metric.denominator) * 100)}%` : '—';
+  const cardClass = `ratio-card${hasData ? '' : ' empty'}`;
+  const meta = hasData ? `${metric.numerator} / ${metric.denominator}` : 'No applicable candidates';
+
+  return `
+    <article class="${cardClass}">
+      <div class="ratio-card-head">
+        <div class="ratio-card-label">${escHtml(metric.label)}</div>
+        <div class="ratio-card-meta">${escHtml(meta)}</div>
+      </div>
+      <div class="ratio-card-value">${percentage}</div>
+      <div class="ratio-card-breakdown">${escHtml(metric.breakdown)}</div>
+      <div class="ratio-card-note">${escHtml(metric.note)}</div>
+    </article>`;
+}
+
+function buildRatioMetrics(candidates) {
+  const totalSourced = candidates.length;
+  const interviewCount = candidates.filter(hasAnyInterview).length;
+  const managerCandidates = candidates.filter(c => hasReachedStage(c, 'Manager Round')).length;
+  const managerSelected = candidates.filter(c => hasClearedStage(c, 'Manager Round')).length;
+  const kaveriCandidates = candidates.filter(c => hasReachedStage(c, 'Kaveri Round')).length;
+  const kaveriSelected = candidates.filter(c => hasClearedStage(c, 'Kaveri Round')).length;
+  const vijayCandidates = candidates.filter(c => hasReachedStage(c, 'Vijay Round')).length;
+  const vijaySelected = candidates.filter(c => hasClearedStage(c, 'Vijay Round')).length;
+  const everOffered = candidates.filter(hasEverBeenOffered).length;
+  const joined = candidates.filter(hasJoined).length;
+  const offeredFromInterviews = candidates.filter(c => hasAnyInterview(c) && hasEverBeenOffered(c)).length;
+  const joinedFromInterviews = candidates.filter(c => hasAnyInterview(c) && hasJoined(c)).length;
+  const offerDropouts = candidates.filter(c => hasEverBeenOffered(c) && isOfferDeclined(c)).length;
+
+  return [
+    {
+      label: 'CV to Interview Rate',
+      numerator: interviewCount,
+      denominator: totalSourced,
+      breakdown: `${interviewCount} interviewed out of ${totalSourced} sourced`,
+      note: 'Counts a candidate once if they reached any interview round at least once.',
+    },
+    {
+      label: 'Manager Select Rate',
+      numerator: managerSelected,
+      denominator: managerCandidates,
+      breakdown: `${managerSelected} selected after manager out of ${managerCandidates} who reached manager`,
+      note: 'Later-stage movement or later-stage rejection still counts as manager selected.',
+    },
+    {
+      label: 'Kaveri Select Rate',
+      numerator: kaveriSelected,
+      denominator: kaveriCandidates,
+      breakdown: `${kaveriSelected} selected after Kaveri out of ${kaveriCandidates} who reached Kaveri`,
+      note: 'Any later Vijay or terminal stage counts as clearing the Kaveri round.',
+    },
+    {
+      label: 'Vijay Select Rate',
+      numerator: vijaySelected,
+      denominator: vijayCandidates,
+      breakdown: `${vijaySelected} selected after Vijay out of ${vijayCandidates} who reached Vijay`,
+      note: 'Final Select, Offered, Offer Dropout, or Joined counts as clearing Vijay.',
+    },
+    {
+      label: 'Interview to Offer Rate',
+      numerator: offeredFromInterviews,
+      denominator: interviewCount,
+      breakdown: `${offeredFromInterviews} offered out of ${interviewCount} interviewed`,
+      note: 'Uses candidates who ever had an interview and ever had Offered at any point.',
+    },
+    {
+      label: 'Interview to Joining Rate',
+      numerator: joinedFromInterviews,
+      denominator: interviewCount,
+      breakdown: `${joinedFromInterviews} joined out of ${interviewCount} interviewed`,
+      note: 'Counts a candidate once if they had any interview and eventually joined.',
+    },
+    {
+      label: 'Offer to Joining Rate',
+      numerator: joined,
+      denominator: everOffered,
+      breakdown: `${joined} joined out of ${everOffered} ever offered`,
+      note: 'Offer denominator includes current or past offered candidates within the active filters.',
+    },
+    {
+      label: 'Offer Decline Rate',
+      numerator: offerDropouts,
+      denominator: everOffered,
+      breakdown: `${offerDropouts} offer dropouts out of ${everOffered} ever offered`,
+      note: 'Counts candidates who had Offered at some point and are currently at Offer Dropout.',
+    },
+    {
+      label: 'Overall CV to Joining Rate',
+      numerator: joined,
+      denominator: totalSourced,
+      breakdown: `${joined} joined out of ${totalSourced} sourced`,
+      note: 'The broadest top-of-funnel conversion across the currently filtered population.',
+    },
+  ];
+}
+
 function switchTatScope(btn, scope) {
   tatScope = scope;
   renderAll();
+}
+
+function switchAnalyticsMainTab(btn, panelId, tabKey) {
+  analyticsMainTab = tabKey;
+  const shell = btn.closest('.page-tabs-shell');
+  if (!shell) return;
+  shell.querySelectorAll('.page-tab').forEach(tab => tab.classList.remove('active'));
+  shell.querySelectorAll('.page-tab-panel').forEach(panel => panel.classList.remove('active'));
+  btn.classList.add('active');
+  shell.querySelector('#' + panelId)?.classList.add('active');
 }
 
 function switchTrendTab(btn, tabId) {
@@ -1020,6 +1192,113 @@ function getCandidateLastActivityDate(candidate) {
     parseDate(candidate.joiningDate),
   ].filter(Boolean);
   return dates.sort((a, b) => b - a)[0] || null;
+}
+
+function hasAnyInterview(candidate) {
+  return ['Assessment', 'AI Interview', 'Manager Round', 'Kaveri Round', 'Vijay Round']
+    .some(stage => hasReachedStage(candidate, stage));
+}
+
+function hasReachedStage(candidate, stage) {
+  const pipeline = getRolePipeline(candidate.role);
+  if (!pipeline.includes(stage)) return false;
+  const exactMaxIndex = getHistoryMaxStageIndex(candidate, pipeline);
+  if (exactMaxIndex !== null) return exactMaxIndex >= pipeline.indexOf(stage);
+  if (getStageDate(candidate, stage)) return true;
+  return getMaxReachedStageIndex(candidate, pipeline) >= pipeline.indexOf(stage);
+}
+
+function hasClearedStage(candidate, stage) {
+  const pipeline = getRolePipeline(candidate.role);
+  const stageIndex = pipeline.indexOf(stage);
+  if (stageIndex === -1 || !hasReachedStage(candidate, stage)) return false;
+  const exactMaxIndex = getHistoryMaxStageIndex(candidate, pipeline);
+  if (exactMaxIndex !== null) return exactMaxIndex > stageIndex;
+
+  for (let i = stageIndex + 1; i < pipeline.length; i++) {
+    if (hasReachedStage(candidate, pipeline[i])) return true;
+  }
+
+  return hasTerminalStageBeyondPipeline(candidate);
+}
+
+function hasEverBeenOffered(candidate) {
+  if (hasSeenStatus(candidate, 'Offered')) return true;
+  return Boolean(parseDate(candidate.offeredDate)) || ['Offered', 'Offer Dropout', 'Joined'].includes(candidate.status);
+}
+
+function hasJoined(candidate) {
+  if (hasSeenStatus(candidate, 'Joined')) return true;
+  return Boolean(parseDate(candidate.joiningDate)) || candidate.status === 'Joined';
+}
+
+function isOfferDeclined(candidate) {
+  return candidate.status === 'Offer Dropout';
+}
+
+function getStatusTimeline(candidate) {
+  const history = Array.isArray(candidate?.statusHistory) ? candidate.statusHistory : [];
+  const statuses = history
+    .map(entry => String(entry?.status || '').trim())
+    .filter(Boolean);
+
+  const currentStatus = String(candidate?.status || '').trim();
+  if (currentStatus && !statuses.includes(currentStatus)) statuses.push(currentStatus);
+  return statuses;
+}
+
+function hasRealStatusHistory(candidate) {
+  return Array.isArray(candidate?.statusHistory) && candidate.statusHistory.length > 0;
+}
+
+function hasSeenStatus(candidate, status) {
+  return getStatusTimeline(candidate).includes(status);
+}
+
+function getHistoryMaxStageIndex(candidate, pipeline = getRolePipeline(candidate.role)) {
+  if (!hasRealStatusHistory(candidate)) return null;
+
+  let maxIndex = -1;
+  getStatusTimeline(candidate).forEach(status => {
+    const idx = getStatusStageIndex(status, pipeline);
+    if (idx > maxIndex) maxIndex = idx;
+  });
+
+  return maxIndex;
+}
+
+function getStatusStageIndex(status, pipeline) {
+  if (!status) return -1;
+  if (['Final Select', 'Offered', 'Offer Dropout', 'Joined'].includes(status)) return pipeline.length - 1;
+
+  const stage = CURRENT_STATUS_TO_STAGE[status];
+  if (!stage) return -1;
+  return pipeline.indexOf(stage);
+}
+
+function getMaxReachedStageIndex(candidate, pipeline = getRolePipeline(candidate.role)) {
+  let maxIndex = parseDate(candidate.sourcingDate) ? 0 : -1;
+
+  pipeline.forEach((stage, index) => {
+    if (stage === 'Screening') return;
+    if (getStageDate(candidate, stage)) maxIndex = Math.max(maxIndex, index);
+  });
+
+  const currentStageIndex = getCurrentStageIndex(candidate, pipeline);
+  return Math.max(maxIndex, currentStageIndex);
+}
+
+function getCurrentStageIndex(candidate, pipeline = getRolePipeline(candidate.role)) {
+  if (['Final Select', 'Offered', 'Offer Dropout', 'Joined'].includes(candidate.status)) {
+    return pipeline.length - 1;
+  }
+  const stage = CURRENT_STATUS_TO_STAGE[candidate.status];
+  if (!stage) return -1;
+  return pipeline.indexOf(stage);
+}
+
+function hasTerminalStageBeyondPipeline(candidate) {
+  return ['Final Select', 'Offered', 'Offer Dropout', 'Joined'].includes(candidate.status) || hasEverBeenOffered(candidate) || hasJoined(candidate);
 }
 
 function bumpMonthCount(monthData, date, key) {
