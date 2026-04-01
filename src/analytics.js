@@ -358,6 +358,18 @@ function renderMainTabsSection() {
   pipelinePanel.id = 'pipeline-panel';
   pipelinePanel.className = `page-tab-panel ${analyticsMainTab === 'pipeline' ? 'active' : ''}`;
   pipelinePanel.appendChild(renderFunnelSection());
+  pipelinePanel.appendChild(renderOpenStageAgingSection());
+
+  const pipelineRow = document.createElement('div');
+  pipelineRow.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:28px;';
+  pipelineRow.appendChild(renderDeptBreakdown());
+  pipelineRow.appendChild(renderRecruiterPerformance());
+  pipelinePanel.appendChild(pipelineRow);
+
+  const pipelineTrendWrap = document.createElement('div');
+  pipelineTrendWrap.style.marginTop = '28px';
+  pipelineTrendWrap.appendChild(renderMonthTrend());
+  pipelinePanel.appendChild(pipelineTrendWrap);
 
   const tatPanel = document.createElement('div');
   tatPanel.id = 'tat-panel';
