@@ -6,6 +6,7 @@ const { google }    = require('googleapis');
 
 const SECRET = new TextEncoder().encode(process.env.SESSION_SECRET);
 const MIN_FEEDBACK_NOTES_WORDS = 30;
+const ROUND_SCORE_LABEL = 'Round Score';
 
 const IS_DEV = process.env.NEXTAUTH_URL?.includes('localhost');
 const ACCESS = {
@@ -93,6 +94,17 @@ function countWords(text) {
   return String(text || '').trim().split(/\s+/).filter(Boolean).length;
 }
 
+function normalizeScores(rawScores) {
+  const normalized = {};
+  Object.entries(rawScores || {}).forEach(([label, value]) => {
+    const cleanLabel = String(label || '').trim();
+    const cleanValue = String(value || '').trim();
+    if (!cleanLabel || !cleanValue) return;
+    normalized[cleanLabel] = cleanValue;
+  });
+  return normalized;
+}
+
 exports.handler = async (event) => {
   const headers = { 'Content-Type': 'application/json' };
 
@@ -106,6 +118,7 @@ exports.handler = async (event) => {
   }
 
   const { row, stage, notes, scores, statusUpdate } = JSON.parse(event.body || '{}');
+  const normalizedScores = normalizeScores(scores);
 
   if (!row || row < 4) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid row number' }) };
@@ -119,7 +132,7 @@ exports.handler = async (event) => {
     };
   }
 
-  if (!notes && !scores?.acumen && !scores?.intel && !scores?.hunger) {
+  if (!notes && Object.keys(normalizedScores).length === 0) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'No data to update' }) };
   }
 
@@ -156,10 +169,7 @@ exports.handler = async (event) => {
     }
 
     // Build scores line if any scores provided
-    const scoreParts = [];
-    if (scores?.acumen) scoreParts.push(`Acumen: ${scores.acumen}/5`);
-    if (scores?.intel)  scoreParts.push(`Intel: ${scores.intel}/5`);
-    if (scores?.hunger) scoreParts.push(`Hunger: ${scores.hunger}/5`);
+    const scoreParts = Object.entries(normalizedScores).map(([label, value]) => `${label}: ${value}`);
     const scoresLine = scoreParts.length > 0 ? `[scores: ${scoreParts.join(' · ')}] ` : '';
 
     const timestamp = new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -180,7 +190,7 @@ exports.handler = async (event) => {
       sheets.spreadsheets.values.get({ spreadsheetId: process.env.SHEET_ID, range: `'${sheetName}'!O${row}` }),
     ]);
     const candidateName = nameRes.data.values?.[0]?.[0] || '';
-    const candidateRole = roleRes.data.values?.[0]?.[0] || '';
+    const candidateRoleForLog = roleRes.data.values?.[0]?.[0] || '';
     const candidateDept = deptRes.data.values?.[0]?.[0] || '';
     const stageLabelMap = {
       recruiter_hr_feedback: 'Recruiter / HR Feedback',
@@ -195,6 +205,12 @@ exports.handler = async (event) => {
       requestBody: { valueInputOption: 'USER_ENTERED', data: updates },
     });
 
+    const scoreSummary = scoreParts.join(' · ');
+    const legacyAcumen = normalizedScores.Acumen || '';
+    const legacyIntel = normalizedScores.Intel || '';
+    const legacyHunger = normalizedScores.Hunger || '';
+    const roundScore = normalizedScores[ROUND_SCORE_LABEL] || '';
+
     // Append row to Feedback Log
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID,
@@ -205,14 +221,14 @@ exports.handler = async (event) => {
         timestamp,
         session.name || session.email,
         candidateName,
-        candidateRole,
+        candidateRoleForLog,
         candidateDept,
         stageLabel,
         notes || '',
-        scores?.acumen || '',
-        scores?.intel  || '',
-        scores?.hunger || '',
-        '',
+        legacyAcumen || roundScore,
+        legacyIntel,
+        legacyHunger,
+        scoreSummary,
       ]] },
     });
 

@@ -83,6 +83,243 @@ const KNOWN_PEOPLE = [
 ];
 const PORTAL_BASE_URL = window.location.origin;
 const MIN_FEEDBACK_NOTES_WORDS = 30;
+const ROUND_SCORE_LABEL = 'Round Score';
+const DEFAULT_FEEDBACK_RUBRIC = {
+  requireAllScores: false,
+  sections: [
+    {
+      heading: 'Core Assessment',
+      metrics: [
+        { id: 'acumen', label: 'Business Acumen', storageLabel: 'Acumen' },
+        { id: 'intel', label: 'Intelligence', storageLabel: 'Intel' },
+        { id: 'hunger', label: 'Hunger / Drive', storageLabel: 'Hunger' },
+      ],
+    },
+  ],
+};
+const ROLE_FEEDBACK_RUBRICS = {
+  'Head - BD': {
+    requireAllScores: true,
+    sections: [
+      {
+        heading: 'Revenue & Growth',
+        metrics: [
+          { id: 'closure_drive_revenue_ownership', label: 'Closure drive & revenue ownership', storageLabel: 'Closure drive & revenue ownership' },
+          { id: 'long_term_strategic_thinking', label: 'Long-term strategic thinking', storageLabel: 'Long-term strategic thinking' },
+        ],
+      },
+      {
+        heading: 'Sales Acumen',
+        metrics: [
+          { id: 'communication_persuasion', label: 'Communication & persuasion', storageLabel: 'Communication & persuasion' },
+          { id: 'hands_on_aggression_target_orientation', label: 'Hands On, Aggression & target orientation', storageLabel: 'Hands On, Aggression & target orientation' },
+        ],
+      },
+      {
+        heading: 'Delivery & Process',
+        metrics: [
+          { id: 'sales_delivery_alignment', label: 'Sales-delivery alignment', storageLabel: 'Sales-delivery alignment' },
+          { id: 'sla_process_discipline', label: 'SLA & process discipline', storageLabel: 'SLA & process discipline' },
+        ],
+      },
+      {
+        heading: 'Values & Integrity',
+        metrics: [
+          { id: 'empathy_relationship_building', label: 'Empathy & relationship building', storageLabel: 'Empathy & relationship building' },
+          { id: 'ownership_mindset_cultural_fit', label: 'Ownership mindset & cultural fit', storageLabel: 'Ownership mindset & cultural fit' },
+        ],
+      },
+    ],
+  },
+};
+
+function getFeedbackRubric(candidate) {
+  return ROLE_FEEDBACK_RUBRICS[candidate?.role] || DEFAULT_FEEDBACK_RUBRIC;
+}
+
+function getFeedbackMetrics(candidate) {
+  return getFeedbackRubric(candidate).sections.flatMap(section => section.metrics);
+}
+
+function getFeedbackMetricLabel(candidate, storageLabel) {
+  const metric = getFeedbackMetrics(candidate).find(item => item.storageLabel === storageLabel);
+  return metric?.label || storageLabel;
+}
+
+function getScoreInputId(metric) {
+  return `score-${metric.id}`;
+}
+
+function parseScoreNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const num = Number(value);
+  if (!Number.isFinite(num) || !Number.isInteger(num) || num < 0 || num > 5) return null;
+  return num;
+}
+
+function formatScoreValue(value) {
+  const num = parseScoreNumber(String(value).replace('/5', '').trim());
+  if (num === null) return String(value || '').trim();
+  return Number.isInteger(num) ? `${num}` : num.toFixed(1).replace(/\.0$/, '');
+}
+
+function calculateRoundScore(metricScores) {
+  if (!metricScores.length) return '';
+  const sum = metricScores.reduce((total, value) => total + value, 0);
+  const average = sum / metricScores.length;
+  return `${average.toFixed(1).replace(/\.0$/, '')}/5`;
+}
+
+function getOrderedScoreEntries(scores, candidate) {
+  const scoreMap = scores || {};
+  const orderedLabels = getFeedbackMetrics(candidate).map(metric => metric.storageLabel);
+  const seen = new Set();
+  const regular = [];
+
+  orderedLabels.forEach(label => {
+    const value = scoreMap[label];
+    if (!String(value || '').trim()) return;
+    regular.push([label, value]);
+    seen.add(label);
+  });
+
+  Object.entries(scoreMap).forEach(([label, value]) => {
+    if (label === ROUND_SCORE_LABEL || seen.has(label) || !String(value || '').trim()) return;
+    regular.push([label, value]);
+  });
+
+  const roundScore = String(scoreMap[ROUND_SCORE_LABEL] || '').trim();
+  return {
+    regular,
+    roundScore: roundScore ? [ROUND_SCORE_LABEL, roundScore] : null,
+  };
+}
+
+function buildScoreTableHtml(scores, candidate, { compact = false } = {}) {
+  const { regular, roundScore } = getOrderedScoreEntries(scores, candidate);
+  if (!regular.length && !roundScore) return '';
+
+  const rows = [];
+  for (let index = 0; index < regular.length; index += 2) {
+    const pair = regular.slice(index, index + 2);
+    rows.push(`
+      <tr>
+        ${pair.map(([label, value]) => `
+          <td style="width:50%;padding:${compact ? '8px 10px' : '10px 12px'};border:1px solid #DBE4F0;vertical-align:top;background:#fff">
+            <div style="font-size:${compact ? '10px' : '11px'};font-weight:700;color:#64748B;line-height:1.4">${escHtml(getFeedbackMetricLabel(candidate, label))}</div>
+            <div style="margin-top:4px;font-size:${compact ? '12px' : '13px'};font-weight:800;color:#4338CA">${escHtml(String(value))}</div>
+          </td>`).join('')}
+        ${pair.length === 1 ? `<td style="width:50%;padding:${compact ? '8px 10px' : '10px 12px'};border:1px solid #DBE4F0;background:#F8FAFC"></td>` : ''}
+      </tr>`);
+  }
+
+  return `
+    <div style="margin-bottom:${compact ? '8px' : '10px'}">
+      ${roundScore ? `
+        <div style="display:inline-flex;align-items:center;gap:8px;background:#EEF2FF;border:1px solid #C7D2FE;border-radius:999px;padding:${compact ? '5px 10px' : '6px 12px'};margin-bottom:${compact ? '8px' : '10px'}">
+          <span style="font-size:${compact ? '10px' : '11px'};font-weight:700;color:#6366F1;text-transform:uppercase;letter-spacing:0.6px">${ROUND_SCORE_LABEL}</span>
+          <span style="font-size:${compact ? '12px' : '14px'};font-weight:900;color:#312E81">${escHtml(roundScore[1])}</span>
+        </div>` : ''}
+      ${regular.length ? `
+        <table style="width:100%;border-collapse:collapse;table-layout:fixed;background:#F8FAFC;border-radius:10px;overflow:hidden">
+          <tbody>${rows.join('')}</tbody>
+        </table>` : ''}
+    </div>`;
+}
+
+function buildScoreInputSections(candidate) {
+  const rubric = getFeedbackRubric(candidate);
+  if (!rubric.sections.length) return '';
+
+  return rubric.sections.map(section => `
+    <div style="margin-bottom:14px">
+      <div class="feedback-section-title">${escHtml(section.heading)}</div>
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;overflow:hidden">
+        <tbody>
+          ${section.metrics.map(metric => `
+            <tr>
+              <td style="padding:11px 12px;border-bottom:1px solid #E2E8F0;font-size:12px;font-weight:700;color:var(--slate-700);line-height:1.5">${escHtml(metric.label)}</td>
+              <td style="width:120px;padding:10px 12px;border-bottom:1px solid #E2E8F0;text-align:right">
+                <div style="display:inline-flex;align-items:center;gap:8px">
+                  <input
+                    type="number"
+                    id="${getScoreInputId(metric)}"
+                    class="score-field"
+                    min="0"
+                    max="5"
+                    step="1"
+                    placeholder="—"
+                    oninput="updateRoundScore()"
+                    style="width:64px;text-align:center"
+                  >
+                  <span class="score-max">/ 5</span>
+                </div>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`).join('');
+}
+
+function collectFeedbackScores(candidate) {
+  const rubric = getFeedbackRubric(candidate);
+  const metrics = getFeedbackMetrics(candidate);
+  const scores = {};
+  const missing = [];
+  const valuesForAverage = [];
+
+  metrics.forEach(metric => {
+    const rawValue = document.getElementById(getScoreInputId(metric))?.value?.trim() || '';
+    if (!rawValue) {
+      if (rubric.requireAllScores) missing.push(metric.label);
+      return;
+    }
+
+    const parsedValue = parseScoreNumber(rawValue);
+    if (parsedValue === null) {
+      missing.push(metric.label);
+      return;
+    }
+
+    const displayValue = `${formatScoreValue(parsedValue)}/5`;
+    scores[metric.storageLabel] = displayValue;
+    valuesForAverage.push(parsedValue);
+  });
+
+  if (valuesForAverage.length) {
+    scores[ROUND_SCORE_LABEL] = calculateRoundScore(valuesForAverage);
+  }
+
+  return { scores, missing };
+}
+
+function updateRoundScore() {
+  const summary = document.getElementById('round-score-summary');
+  if (!summary || !currentCandidate) return;
+
+  const metrics = getFeedbackMetrics(currentCandidate);
+  if (!metrics.length) {
+    summary.textContent = '';
+    return;
+  }
+
+  const values = metrics
+    .map(metric => parseScoreNumber(document.getElementById(getScoreInputId(metric))?.value?.trim()))
+    .filter(value => value !== null);
+
+  if (!values.length) {
+    summary.textContent = 'Round Score: —';
+    return;
+  }
+
+  const rubric = getFeedbackRubric(currentCandidate);
+  if (rubric.requireAllScores && values.length !== metrics.length) {
+    summary.textContent = `Round Score: fill all ${metrics.length} scores`;
+    return;
+  }
+
+  summary.textContent = `Round Score: ${calculateRoundScore(values)}`;
+}
 
 function isTaRoleCandidate(candidate) {
   if (!candidate) return false;
@@ -448,13 +685,7 @@ function buildFeedbackForm(c) {
               <span style="font-size:10px;color:var(--slate-400)">${escHtml(e.date)}</span>
             </div>
           </div>
-          ${Object.keys(e.scores).length > 0 ? `
-          <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-            ${Object.entries(e.scores).map(([k,v]) => `
-              <span style="background:#EEF2FF;border-radius:6px;padding:3px 10px;font-size:10px;font-weight:800;color:#4338CA">
-                ${escHtml(k)}: ${escHtml(v)}
-              </span>`).join('')}
-          </div>` : ''}
+          ${Object.keys(e.scores).length > 0 ? buildScoreTableHtml(e.scores, c) : ''}
           ${e.notes ? `<p style="font-size:12px;line-height:1.6;color:var(--slate-700);margin:0;white-space:pre-wrap">${escHtml(e.notes)}</p>` : ''}
         </div>`).join('')}
     </div>` : '';
@@ -469,27 +700,8 @@ function buildFeedbackForm(c) {
 
     <div style="margin-bottom:14px" id="scores-section">
       <div class="feedback-section-title">Scores (out of 5)</div>
-      <div class="score-row">
-        <span class="score-label">Business Acumen</span>
-        <div class="score-input-wrap">
-          <input type="number" id="score-acumen" class="score-field" min="0" max="5" placeholder="—">
-          <span class="score-max">/ 5</span>
-        </div>
-      </div>
-      <div class="score-row">
-        <span class="score-label">Intelligence</span>
-        <div class="score-input-wrap">
-          <input type="number" id="score-intel" class="score-field" min="0" max="5" placeholder="—">
-          <span class="score-max">/ 5</span>
-        </div>
-      </div>
-      <div class="score-row">
-        <span class="score-label">Hunger / Drive</span>
-        <div class="score-input-wrap">
-          <input type="number" id="score-hunger" class="score-field" min="0" max="5" placeholder="—">
-          <span class="score-max">/ 5</span>
-        </div>
-      </div>
+      ${buildScoreInputSections(c)}
+      <div id="round-score-summary" style="margin-top:8px;font-size:12px;font-weight:800;color:#4338CA">Round Score: —</div>
     </div>
 
     <div style="margin-bottom:6px">
@@ -516,7 +728,7 @@ function buildFeedbackForm(c) {
 }
 
 function onFeedbackStageChange(stage, candidateJson) {
-  // No scores section needed — scores removed as requested
+  updateRoundScore();
 }
 
 function updateWordCount() {
@@ -536,11 +748,10 @@ async function saveFeedback() {
 
   const stage   = document.getElementById('feedback-stage')?.value;
   const notes   = document.getElementById('feedback-notes')?.value?.trim();
-  const acumen  = document.getElementById('score-acumen')?.value;
-  const intel   = document.getElementById('score-intel')?.value;
-  const hunger  = document.getElementById('score-hunger')?.value;
   const btn     = document.getElementById('btn-save-feedback');
   const msgEl   = document.getElementById('feedback-msg');
+  const { scores, missing } = collectFeedbackScores(currentCandidate);
+  const rubric = getFeedbackRubric(currentCandidate);
 
   // Role check
   const userEmail = window.__userEmail || '';
@@ -556,6 +767,11 @@ async function saveFeedback() {
     return;
   }
 
+  if (rubric.requireAllScores && missing.length) {
+    if (msgEl) msgEl.innerHTML = `<div class="send-error">Please fill all score fields for this role before saving.</div>`;
+    return;
+  }
+
   btn.disabled     = true;
   btn.textContent  = 'Saving...';
   if (msgEl) msgEl.innerHTML = '';
@@ -568,7 +784,7 @@ async function saveFeedback() {
         row:    currentCandidate._row,
         stage,
         notes,
-        scores: { acumen, intel, hunger },
+        scores,
       }),
     });
 
@@ -732,10 +948,7 @@ function buildEmailPreviewHtml(c, stage, customMsg, includeProfile, includeFeedb
           <span style="font-size:10px;font-weight:800;color:${accent};text-transform:uppercase">${e.stage}</span>
           <span style="font-size:10px;color:#94a3b8">by ${e.author} · ${e.date}</span>
         </div>
-        ${includeScores && Object.keys(e.scores).length > 0 ? `
-        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
-          ${Object.entries(e.scores).map(([k,v]) => `<span style="background:#EEF2FF;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:800;color:#4338CA">${k}: ${v}</span>`).join('')}
-        </div>` : ''}
+        ${includeScores && Object.keys(e.scores).length > 0 ? buildScoreTableHtml(e.scores, c, { compact: true }) : ''}
         ${e.notes ? `<p style="font-size:11px;line-height:1.6;color:#334155;margin:0">${e.notes}</p>` : ''}
       </div>`).join('')}` : '';
 
@@ -930,6 +1143,7 @@ window.sendEmail               = sendEmail;
 window.toggleRecipient         = toggleRecipient;
 window.addCustomRecipient      = addCustomRecipient;
 window.updateEmailPreview      = updateEmailPreview;
+window.updateRoundScore        = updateRoundScore;
 window.copyCandidateLink       = copyCandidateLink;
 window.onFeedbackStageChange     = onFeedbackStageChange;
 window.getUserRole             = getUserRole;

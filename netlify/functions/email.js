@@ -6,6 +6,24 @@ const { jwtVerify } = require('jose');
 const SECRET = new TextEncoder().encode(process.env.SESSION_SECRET);
 const IS_DEV = process.env.NEXTAUTH_URL?.includes('localhost');
 const PORTAL_BASE_URL = process.env.PORTAL_BASE_URL || 'https://peepal-hiring-portalv2.netlify.app';
+const ROUND_SCORE_LABEL = 'Round Score';
+const DEFAULT_FEEDBACK_LABELS = {
+  Acumen: 'Business Acumen',
+  Intel: 'Intelligence',
+  Hunger: 'Hunger / Drive',
+};
+const ROLE_FEEDBACK_LABELS = {
+  'Head - BD': {
+    'Closure drive & revenue ownership': 'Closure drive & revenue ownership',
+    'Long-term strategic thinking': 'Long-term strategic thinking',
+    'Communication & persuasion': 'Communication & persuasion',
+    'Hands On, Aggression & target orientation': 'Hands On, Aggression & target orientation',
+    'Sales-delivery alignment': 'Sales-delivery alignment',
+    'SLA & process discipline': 'SLA & process discipline',
+    'Empathy & relationship building': 'Empathy & relationship building',
+    'Ownership mindset & cultural fit': 'Ownership mindset & cultural fit',
+  },
+};
 
 async function getSession(event) {
   if (IS_DEV) return { email: 'arth.mohan@peepalconsulting.com', name: 'Arth Mohan' };
@@ -59,6 +77,69 @@ function getCandidateProfileUrl(candidate) {
   return `${PORTAL_BASE_URL}/dashboard?candidate=${candidate._row}`;
 }
 
+function getScoreLabel(candidate, label) {
+  return ROLE_FEEDBACK_LABELS[candidate?.role]?.[label] || DEFAULT_FEEDBACK_LABELS[label] || label;
+}
+
+function getOrderedScoreEntries(scores, candidate) {
+  const scoreMap = scores || {};
+  const roleLabels = Object.keys(ROLE_FEEDBACK_LABELS[candidate?.role] || {});
+  const defaultLabels = Object.keys(DEFAULT_FEEDBACK_LABELS);
+  const preferred = [...roleLabels, ...defaultLabels];
+  const seen = new Set();
+  const regular = [];
+
+  preferred.forEach(label => {
+    const value = scoreMap[label];
+    if (!String(value || '').trim()) return;
+    regular.push([label, value]);
+    seen.add(label);
+  });
+
+  Object.entries(scoreMap).forEach(([label, value]) => {
+    if (label === ROUND_SCORE_LABEL || seen.has(label) || !String(value || '').trim()) return;
+    regular.push([label, value]);
+  });
+
+  const roundScore = String(scoreMap[ROUND_SCORE_LABEL] || '').trim();
+  return {
+    regular,
+    roundScore: roundScore ? [ROUND_SCORE_LABEL, roundScore] : null,
+  };
+}
+
+function buildScoreTableHtml(scores, candidate) {
+  const { regular, roundScore } = getOrderedScoreEntries(scores, candidate);
+  if (!regular.length && !roundScore) return '';
+
+  const rows = [];
+  for (let index = 0; index < regular.length; index += 2) {
+    const pair = regular.slice(index, index + 2);
+    rows.push(`
+      <tr>
+        ${pair.map(([label, value]) => `
+          <td style="width:50%;padding:8px 10px;border:1px solid #DBE4F0;vertical-align:top;background:#fff">
+            <div style="font-size:10px;font-weight:700;color:#64748B;line-height:1.4">${getScoreLabel(candidate, label)}</div>
+            <div style="margin-top:4px;font-size:12px;font-weight:800;color:#4338CA">${value}</div>
+          </td>`).join('')}
+        ${pair.length === 1 ? '<td style="width:50%;padding:8px 10px;border:1px solid #DBE4F0;background:#F8FAFC"></td>' : ''}
+      </tr>`);
+  }
+
+  return `
+    <div style="margin-bottom:8px">
+      ${roundScore ? `
+        <div style="display:inline-flex;align-items:center;gap:8px;background:#EEF2FF;border:1px solid #C7D2FE;border-radius:999px;padding:5px 10px;margin-bottom:8px">
+          <span style="font-size:10px;font-weight:700;color:#6366F1;text-transform:uppercase;letter-spacing:0.6px">${ROUND_SCORE_LABEL}</span>
+          <span style="font-size:12px;font-weight:900;color:#312E81">${roundScore[1]}</span>
+        </div>` : ''}
+      ${regular.length ? `
+        <table style="width:100%;border-collapse:collapse;table-layout:fixed;background:#F8FAFC;border-radius:10px;overflow:hidden">
+          <tbody>${rows.join('')}</tbody>
+        </table>` : ''}
+    </div>`;
+}
+
 function buildEmailHtml({ candidate, stage, customMsg, includeProfile=true, includeFeedback=true, includeScores=true, sentBy }) {
   const DEPT_ACCENT = {'TA':'#3949AB','BD':'#1565C0','Central Marketing':'#6A1B9A','TAD':'#2E7D32','HR':'#F57F17',"Founder's Office":'#AD1457'};
   const DEPT_BG = {'TA':'#E8EAF6','BD':'#E3F2FD','Central Marketing':'#F3E5F5','TAD':'#E8F5E9','HR':'#FFF9C4',"Founder's Office":'#FCE4EC'};
@@ -104,10 +185,7 @@ function buildEmailHtml({ candidate, stage, customMsg, includeProfile=true, incl
           <span style="font-size:10px;font-weight:800;color:${accent};text-transform:uppercase">${e.stage}</span>
           <span style="font-size:10px;color:#94a3b8">by ${e.author} · ${e.date}</span>
         </div>
-        ${includeScores && Object.keys(e.scores).length > 0 ? `
-        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
-          ${Object.entries(e.scores).map(([k,v]) => `<span style="background:#EEF2FF;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:800;color:#4338CA">${k}: ${v}</span>`).join('')}
-        </div>` : ''}
+        ${includeScores && Object.keys(e.scores).length > 0 ? buildScoreTableHtml(e.scores, candidate) : ''}
         ${e.notes ? `<p style="font-size:11px;line-height:1.6;color:#334155;margin:0">${e.notes.replace(/\n/g,'<br>')}</p>` : ''}
       </div>`).join('')}` : '';
 
