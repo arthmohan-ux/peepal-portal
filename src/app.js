@@ -42,14 +42,14 @@ const DEPT_ROLES = {
   "Founder's Office": ["Founder's Office"],
 };
 
-const REJECT_STATUSES  = ['Screen Reject','Aptitude Reject','Test Reject','Assessment Reject','AI Interview Reject','Manager Round Reject','Kaveri Reject','Vijay Reject','Offer Dropout','Drop'];
+const REJECT_STATUSES  = ['Screen Reject','Aptitude Reject','Assessment Reject','AI Interview Reject','Manager Round Reject','Kaveri Reject','Vijay Reject','Offer Dropout','Drop'];
 const PENDING_STATUSES = ['Aptitude Pending','Assessment Pending','Assesment Under Review','AI Interview Pending','Manager Round Pending','Manager Feedback Pending','Kaveri Round Pending','Kaveri Feedback Pending','Vijay Round Pending','Vijay Feedback Pending','Hold'];
 const SELECT_STATUSES  = ['Aptitude Select','Final Select'];
 const MULTI_SELECT_CONFIG = {
   filterDept:  { placeholder: 'All Departments', singular: 'Department', plural: 'Departments' },
   filterRole:  { placeholder: 'All Roles',       singular: 'Role',       plural: 'Roles' },
-  filterWeek:  { placeholder: 'All Weeks',       singular: 'Week',       plural: 'Weeks' },
   filterMonth: { placeholder: 'All Months',      singular: 'Month',      plural: 'Months' },
+  filterWeek:  { placeholder: 'All Weeks',       singular: 'Week',       plural: 'Weeks' },
 };
 
 // ── STATE ──
@@ -172,7 +172,7 @@ function clearFilters() {
 // ── STATUS FILTER (cascades from role) ──
 const STAGE_STATUSES = {
   'Screening':     ['Screen Reject', 'Hold', 'Drop'],
-  'Aptitude':      ['Aptitude Pending', 'Aptitude Reject', 'Test Reject', 'Aptitude Select'],
+  'Aptitude':      ['Aptitude Pending', 'Aptitude Reject', 'Aptitude Select'],
   'Assessment':    ['Assessment Pending', 'Assessment Reject', 'Assesment Under Review'],
   'AI Interview':  ['AI Interview Pending', 'AI Interview Reject'],
   'Manager Round': ['Manager Round Pending', 'Manager Feedback Pending', 'Manager Round Reject'],
@@ -205,7 +205,7 @@ function rebuildStatusDropdown(roles) {
 
   statusEl.innerHTML = '<option value="">All Statuses</option>';
   const list = statuses || [
-    'Screen Reject','Aptitude Pending','Aptitude Reject','Test Reject','Aptitude Select',
+    'Screen Reject','Aptitude Pending','Aptitude Reject','Aptitude Select',
     'Assessment Pending','Assessment Reject','Assesment Under Review',
     'AI Interview Pending','AI Interview Reject',
     'Manager Round Pending','Manager Feedback Pending','Manager Round Reject',
@@ -245,27 +245,29 @@ function rebuildRoleFilter() {
 }
 
 function populateDateFilters() {
-  const currentWeek = getMultiSelectValues('filterWeek');
   const currentMonth = getMultiSelectValues('filterMonth');
+  const currentWeek = getMultiSelectValues('filterWeek');
 
-  const weekMap = new Map();
   const monthMap = new Map();
+  const weekMap = new Map();
 
   allCandidates.forEach(candidate => {
     const date = parseDate(candidate.sourcingDate);
     if (!date) return;
 
-    const week = getWeekLabel(date);
     const month = getMonthLabel(date);
-    if (week && !weekMap.has(week)) weekMap.set(week, getWeekBucketTimestamp(date));
     if (month && !monthMap.has(month)) monthMap.set(month, new Date(date.getFullYear(), date.getMonth(), 1).getTime());
+    if (!currentMonth.length || currentMonth.includes(month)) {
+      const week = getWeekLabel(date);
+      if (week && !weekMap.has(week)) weekMap.set(week, getWeekBucketTimestamp(date));
+    }
   });
 
-  const weeks = [...weekMap.entries()].sort((a, b) => b[1] - a[1]).map(([label]) => label);
   const months = [...monthMap.entries()].sort((a, b) => b[1] - a[1]).map(([label]) => label);
+  const weeks = [...weekMap.entries()].sort((a, b) => b[1] - a[1]).map(([label]) => label);
 
-  setMultiSelectOptions('filterWeek', weeks, currentWeek.filter(week => weeks.includes(week)));
   setMultiSelectOptions('filterMonth', months, currentMonth.filter(month => months.includes(month)));
+  setMultiSelectOptions('filterWeek', weeks, currentWeek.filter(week => weeks.includes(week)));
 }
 
 // ── TABLE RENDER ──
@@ -428,6 +430,7 @@ function clearFilter(key) {
   if (['dept','role','week','month'].includes(key)) {
     setMultiSelectValues(map[key], []);
     if (key === 'dept') rebuildRoleFilter();
+    if (key === 'month') populateDateFilters();
     if (key === 'dept' || key === 'role') rebuildStatusDropdown(getMultiSelectValues('filterRole'));
   } else {
     el.value = '';
@@ -461,6 +464,7 @@ function toggleMultiSelect(id, event) {
   const root = document.getElementById(id);
   if (!root) return;
   if (id === 'filterRole') rebuildRoleFilter();
+  if (id === 'filterMonth' || id === 'filterWeek') populateDateFilters();
   const isOpen = root.classList.contains('open');
   document.querySelectorAll('.multi-select.open').forEach(el => el.classList.remove('open'));
   if (!isOpen) root.classList.add('open');
@@ -475,6 +479,8 @@ function handleMultiSelectChange(id) {
   if (id === 'filterDept') {
     rebuildRoleFilter();
     rebuildStatusDropdown(getMultiSelectValues('filterRole'));
+  } else if (id === 'filterMonth') {
+    populateDateFilters();
   } else if (id === 'filterRole') {
     rebuildStatusDropdown(getMultiSelectValues('filterRole'));
   }

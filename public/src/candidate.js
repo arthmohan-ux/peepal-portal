@@ -263,7 +263,6 @@ function buildPipelineTimeline(c, pipeline) {
   const rejectedStages = {
     'Screen Reject':          'Screening',
     'Aptitude Reject':        'Aptitude',
-    'Test Reject':            'Aptitude',
     'Assessment Reject':      'Assessment',
     'AI Interview Reject':    'AI Interview',
     'Manager Round Reject':   'Manager Round',

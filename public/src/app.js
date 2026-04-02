@@ -42,7 +42,7 @@ const DEPT_ROLES = {
   "Founder's Office": ["Founder's Office"],
 };
 
-const REJECT_STATUSES  = ['Screen Reject','Aptitude Reject','Test Reject','Assessment Reject','AI Interview Reject','Manager Round Reject','Kaveri Reject','Vijay Reject','Offer Dropout','Drop'];
+const REJECT_STATUSES  = ['Screen Reject','Aptitude Reject','Assessment Reject','AI Interview Reject','Manager Round Reject','Kaveri Reject','Vijay Reject','Offer Dropout','Drop'];
 const PENDING_STATUSES = ['Aptitude Pending','Assessment Pending','Assesment Under Review','AI Interview Pending','Manager Round Pending','Manager Feedback Pending','Kaveri Round Pending','Kaveri Feedback Pending','Vijay Round Pending','Vijay Feedback Pending','Hold'];
 const SELECT_STATUSES  = ['Aptitude Select','Final Select'];
 const MULTI_SELECT_CONFIG = {
@@ -172,7 +172,7 @@ function clearFilters() {
 // ── STATUS FILTER (cascades from role) ──
 const STAGE_STATUSES = {
   'Screening':     ['Screen Reject', 'Hold', 'Drop'],
-  'Aptitude':      ['Aptitude Pending', 'Aptitude Reject', 'Test Reject', 'Aptitude Select'],
+  'Aptitude':      ['Aptitude Pending', 'Aptitude Reject', 'Aptitude Select'],
   'Assessment':    ['Assessment Pending', 'Assessment Reject', 'Assesment Under Review'],
   'AI Interview':  ['AI Interview Pending', 'AI Interview Reject'],
   'Manager Round': ['Manager Round Pending', 'Manager Feedback Pending', 'Manager Round Reject'],
@@ -205,7 +205,7 @@ function rebuildStatusDropdown(roles) {
 
   statusEl.innerHTML = '<option value="">All Statuses</option>';
   const list = statuses || [
-    'Screen Reject','Aptitude Pending','Aptitude Reject','Test Reject','Aptitude Select',
+    'Screen Reject','Aptitude Pending','Aptitude Reject','Aptitude Select',
     'Assessment Pending','Assessment Reject','Assesment Under Review',
     'AI Interview Pending','AI Interview Reject',
     'Manager Round Pending','Manager Feedback Pending','Manager Round Reject',

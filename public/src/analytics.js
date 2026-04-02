@@ -46,7 +46,7 @@ const ROLE_PIPELINE = {
 
 const FUNNEL_STATUS_ORDER = [
   'Screen Reject',
-  'Aptitude Pending','Aptitude Reject','Test Reject','Aptitude Select',
+  'Aptitude Pending','Aptitude Reject','Aptitude Select',
   'Assessment Pending','Assessment Reject','Assesment Under Review',
   'AI Interview Pending','AI Interview Reject',
   'Manager Round Pending','Manager Feedback Pending','Manager Round Reject',
@@ -57,7 +57,7 @@ const FUNNEL_STATUS_ORDER = [
 const VALID_FUNNEL_STATUSES = new Set(FUNNEL_STATUS_ORDER);
 
 const STATUS_FC_CLASS = {
-  'Screen Reject':'fc-reject','Aptitude Reject':'fc-reject','Test Reject':'fc-reject',
+  'Screen Reject':'fc-reject','Aptitude Reject':'fc-reject',
   'Assessment Reject':'fc-reject','AI Interview Reject':'fc-reject',
   'Manager Round Reject':'fc-reject','Kaveri Reject':'fc-reject','Vijay Reject':'fc-reject',
   'Offer Dropout':'fc-reject','Drop':'fc-drop',
@@ -128,7 +128,6 @@ const CURRENT_STATUS_TO_STAGE = {
   'Drop': 'Screening',
   'Aptitude Pending': 'Aptitude',
   'Aptitude Reject': 'Aptitude',
-  'Test Reject': 'Aptitude',
   'Aptitude Select': 'Aptitude',
   'Assessment Pending': 'Assessment',
   'Assessment Reject': 'Assessment',
@@ -159,6 +158,7 @@ const MULTI_SELECT_CONFIG = {
   filterDept: { placeholder: 'All Departments', singular: 'Department', plural: 'Departments' },
   filterRole: { placeholder: 'All Roles', singular: 'Role', plural: 'Roles' },
   filterMonth: { placeholder: 'All Months', singular: 'Month', plural: 'Months' },
+  filterWeek: { placeholder: 'All Weeks', singular: 'Week', plural: 'Weeks' },
 };
 
 // ── STATE ──
@@ -170,6 +170,7 @@ let multiSelectState = {
   filterDept: [],
   filterRole: [],
   filterMonth: [],
+  filterWeek: [],
 };
 
 // ── INIT ──
@@ -229,11 +230,7 @@ function populateFilterDropdowns() {
   recEl.innerHTML = '<option value="">All Recruiters</option>';
   recruiters.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r; recEl.appendChild(o); });
 
-  // Months (from sourcingDate)
-  const months = [...new Set(rawCandidates.map(c => getMonthLabel(c.sourcingDate)).filter(Boolean))];
-  months.sort((a, b) => new Date('1 ' + a) - new Date('1 ' + b));
-  const currentMonths = getMultiSelectValues('filterMonth');
-  setMultiSelectOptions('filterMonth', months, currentMonths.filter(month => months.includes(month)));
+  populateDateFilters();
 }
 
 function populateDepartmentFilter() {
@@ -254,6 +251,36 @@ function rebuildRoleFilter() {
   setMultiSelectOptions('filterRole', roles, preservedRoles);
 }
 
+function populateDateFilters() {
+  const currentMonths = getMultiSelectValues('filterMonth');
+  const currentWeeks = getMultiSelectValues('filterWeek');
+  const monthMap = new Map();
+  const weekMap = new Map();
+
+  rawCandidates.forEach(candidate => {
+    const date = parseDate(candidate.sourcingDate);
+    if (!date) return;
+
+    const month = getMonthLabel(date);
+    if (month && !monthMap.has(month)) {
+      monthMap.set(month, new Date(date.getFullYear(), date.getMonth(), 1).getTime());
+    }
+
+    if (!currentMonths.length || currentMonths.includes(month)) {
+      const week = getWeekLabel(date);
+      if (week && !weekMap.has(week)) {
+        weekMap.set(week, getWeekBucketTimestamp(date));
+      }
+    }
+  });
+
+  const months = [...monthMap.entries()].sort((a, b) => b[1] - a[1]).map(([label]) => label);
+  const weeks = [...weekMap.entries()].sort((a, b) => b[1] - a[1]).map(([label]) => label);
+
+  setMultiSelectOptions('filterMonth', months, currentMonths.filter(month => months.includes(month)));
+  setMultiSelectOptions('filterWeek', weeks, currentWeeks.filter(week => weeks.includes(week)));
+}
+
 function applyFilters() {
   filtered = getCandidatesMatchingFilters({ monthMode: 'sourcing' });
   renderAll();
@@ -267,7 +294,9 @@ function clearFilters() {
   setMultiSelectValues('filterDept', []);
   setMultiSelectValues('filterRole', []);
   setMultiSelectValues('filterMonth', []);
+  setMultiSelectValues('filterWeek', []);
   rebuildRoleFilter();
+  populateDateFilters();
   applyFilters();
 }
 
@@ -708,7 +737,7 @@ function renderRecruiterPerformance() {
     recStats[r].total++;
     if (c.status === 'Joined') recStats[r].joined++;
     else if (['Final Select','Offered'].includes(c.status)) recStats[r].selected++;
-    else if (['Screen Reject','Aptitude Reject','Test Reject','Assessment Reject','AI Interview Reject',
+    else if (['Screen Reject','Aptitude Reject','Assessment Reject','AI Interview Reject',
       'Manager Round Reject','Kaveri Reject','Vijay Reject','Offer Dropout','Drop'].includes(c.status)) recStats[r].rejected++;
     else recStats[r].active++;
   }
@@ -1008,6 +1037,7 @@ function toggleMultiSelect(id, event) {
   const root = document.getElementById(id);
   if (!root) return;
   if (id === 'filterRole') rebuildRoleFilter();
+  if (id === 'filterMonth' || id === 'filterWeek') populateDateFilters();
   const isOpen = root.classList.contains('open');
   document.querySelectorAll('.multi-select.open').forEach(el => el.classList.remove('open'));
   if (!isOpen) root.classList.add('open');
@@ -1019,6 +1049,7 @@ function handleMultiSelectChange(id) {
     multiSelectState[id] = [...root.querySelectorAll('input[type="checkbox"]:checked')].map(input => input.value);
   }
   if (id === 'filterDept') rebuildRoleFilter();
+  if (id === 'filterMonth') populateDateFilters();
   updateMultiSelectTrigger(id);
   applyFilters();
 }
@@ -1147,24 +1178,45 @@ function getCandidatesMatchingFilters({ includeMonth = true, monthMode = 'sourci
   const roles     = getMultiSelectValues('filterRole');
   const recruiter = document.getElementById('filterRecruiter')?.value || '';
   const months    = getMultiSelectValues('filterMonth');
+  const weeks     = getMultiSelectValues('filterWeek');
 
   return rawCandidates.filter(c => {
     if (depts.length && !depts.includes(c.department)) return false;
     if (roles.length && !roles.includes(c.role)) return false;
     if (recruiter && c.recruiter  !== recruiter) return false;
-    if (!includeMonth || !months.length) return true;
-
     const monthDate = monthMode === 'lastActivity'
       ? getCandidateLastActivityDate(c)
       : parseDate(c.sourcingDate);
-    return months.includes(getMonthLabel(monthDate));
+    if (includeMonth && months.length && !months.includes(getMonthLabel(monthDate))) return false;
+    if (weeks.length && !weeks.includes(getWeekLabel(c.sourcingDate))) return false;
+    return true;
   });
+}
+
+function getWeekNumberInMonth(val) {
+  const date = parseDate(val);
+  if (!date) return null;
+  return Math.floor((date.getDate() - 1) / 7) + 1;
+}
+
+function getWeekBucketTimestamp(val) {
+  const date = parseDate(val);
+  const weekNumber = getWeekNumberInMonth(val);
+  if (!date || !weekNumber) return null;
+  return new Date(date.getFullYear(), date.getMonth(), ((weekNumber - 1) * 7) + 1).getTime();
+}
+
+function getWeekLabel(val) {
+  const date = parseDate(val);
+  const weekNumber = getWeekNumberInMonth(val);
+  if (!date || !weekNumber) return null;
+  return `Week ${weekNumber} ${date.toLocaleString('en-GB', { month: 'long', year: 'numeric' })}`;
 }
 
 function getMonthLabel(val) {
   const d = parseDate(val);
   if (!d) return null;
-  return d.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
+  return d.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
 }
 
 function getLatestMonthLabel(dates) {
