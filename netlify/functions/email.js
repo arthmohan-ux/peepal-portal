@@ -6,6 +6,7 @@ const { jwtVerify } = require('jose');
 const SECRET = new TextEncoder().encode(process.env.SESSION_SECRET);
 const IS_DEV = process.env.NEXTAUTH_URL?.includes('localhost');
 const PORTAL_BASE_URL = process.env.PORTAL_BASE_URL || 'https://peepal-hiring-portalv2.netlify.app';
+const PORTAL_TIME_ZONE = 'Asia/Kolkata';
 const ROUND_SCORE_LABEL = 'Round Score';
 const DEFAULT_FEEDBACK_LABELS = {
   Acumen: 'Business Acumen',
@@ -140,6 +141,15 @@ function buildScoreTableHtml(scores, candidate) {
     </div>`;
 }
 
+function getPortalDateLabel(date = new Date()) {
+  return date.toLocaleDateString('en-GB', {
+    timeZone: PORTAL_TIME_ZONE,
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
 function buildEmailHtml({ candidate, stage, customMsg, includeProfile=true, includeFeedback=true, includeScores=true, sentBy }) {
   const DEPT_ACCENT = {'TA':'#3949AB','BD':'#1565C0','Central Marketing':'#6A1B9A','TAD':'#2E7D32','HR':'#F57F17',"Founder's Office":'#AD1457'};
   const DEPT_BG = {'TA':'#E8EAF6','BD':'#E3F2FD','Central Marketing':'#F3E5F5','TAD':'#E8F5E9','HR':'#FFF9C4',"Founder's Office":'#FCE4EC'};
@@ -225,7 +235,7 @@ function buildEmailHtml({ candidate, stage, customMsg, includeProfile=true, incl
     ${actionButtons ? `<div style="display:flex;flex-wrap:wrap;gap:10px">${actionButtons}</div>` : ''}
   </div>
   <div style="background:#f8fafc;padding:16px 28px;border-top:1px solid #e2e8f0;">
-    <p style="margin:0;font-size:10px;color:#94a3b8">Sent by <strong>${sentBy}</strong> via Peepal Hiring Portal · ${new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}</p>
+    <p style="margin:0;font-size:10px;color:#94a3b8">Sent by <strong>${sentBy}</strong> via Peepal Hiring Portal · ${getPortalDateLabel()}</p>
   </div>
 </div></body></html>`;
 

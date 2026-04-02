@@ -7,6 +7,7 @@ const { google }    = require('googleapis');
 const SECRET = new TextEncoder().encode(process.env.SESSION_SECRET);
 const MIN_FEEDBACK_NOTES_WORDS = 30;
 const ROUND_SCORE_LABEL = 'Round Score';
+const PORTAL_TIME_ZONE = 'Asia/Kolkata';
 
 const IS_DEV = process.env.NEXTAUTH_URL?.includes('localhost');
 const ACCESS = {
@@ -105,6 +106,17 @@ function normalizeScores(rawScores) {
   return normalized;
 }
 
+function getPortalTimestamp(date = new Date()) {
+  return date.toLocaleString('en-GB', {
+    timeZone: PORTAL_TIME_ZONE,
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 exports.handler = async (event) => {
   const headers = { 'Content-Type': 'application/json' };
 
@@ -172,7 +184,7 @@ exports.handler = async (event) => {
     const scoreParts = Object.entries(normalizedScores).map(([label, value]) => `${label}: ${value}`);
     const scoresLine = scoreParts.length > 0 ? `[scores: ${scoreParts.join(' · ')}] ` : '';
 
-    const timestamp = new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const timestamp = getPortalTimestamp();
     const prefix    = stage ? `[${stage} — ${timestamp} — ${session.name}]` : `[${timestamp} — ${session.name}]`;
     const entry     = `${prefix} ${scoresLine}${notes || ''}`.trim();
 

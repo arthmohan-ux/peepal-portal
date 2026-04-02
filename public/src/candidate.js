@@ -97,40 +97,263 @@ const DEFAULT_FEEDBACK_RUBRIC = {
     },
   ],
 };
-const ROLE_FEEDBACK_RUBRICS = {
-  'Head - BD': {
+function createRubric(sectionDefs) {
+  return {
     requireAllScores: true,
-    sections: [
-      {
-        heading: 'Revenue & Growth',
-        metrics: [
-          { id: 'closure_drive_revenue_ownership', label: 'Closure drive & revenue ownership', storageLabel: 'Closure drive & revenue ownership' },
-          { id: 'long_term_strategic_thinking', label: 'Long-term strategic thinking', storageLabel: 'Long-term strategic thinking' },
-        ],
-      },
-      {
-        heading: 'Sales Acumen',
-        metrics: [
-          { id: 'communication_persuasion', label: 'Communication & persuasion', storageLabel: 'Communication & persuasion' },
-          { id: 'hands_on_aggression_target_orientation', label: 'Hands On, Aggression & target orientation', storageLabel: 'Hands On, Aggression & target orientation' },
-        ],
-      },
-      {
-        heading: 'Delivery & Process',
-        metrics: [
-          { id: 'sales_delivery_alignment', label: 'Sales-delivery alignment', storageLabel: 'Sales-delivery alignment' },
-          { id: 'sla_process_discipline', label: 'SLA & process discipline', storageLabel: 'SLA & process discipline' },
-        ],
-      },
-      {
-        heading: 'Values & Integrity',
-        metrics: [
-          { id: 'empathy_relationship_building', label: 'Empathy & relationship building', storageLabel: 'Empathy & relationship building' },
-          { id: 'ownership_mindset_cultural_fit', label: 'Ownership mindset & cultural fit', storageLabel: 'Ownership mindset & cultural fit' },
-        ],
-      },
-    ],
-  },
+    sections: sectionDefs.map(([heading, metrics]) => ({
+      heading,
+      metrics: metrics.map(label => ({
+        id: label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''),
+        label,
+        storageLabel: label,
+      })),
+    })),
+  };
+}
+
+const RUBRIC_FOUNDERS_OFFICE = createRubric([
+  ['Intellect & Business Acumen', [
+    'Structured thinking & ability to connect business dots',
+    'Comfort with ambiguity & operating without a playbook',
+  ]],
+  ['Ownership & Execution', [
+    'End-to-end project ownership & delivery',
+    'Ability to drive change & see initiatives through',
+  ]],
+  ['Ambition & Drive', [
+    'Hunger to create impact & challenge status quo',
+    'Initiative & self-direction',
+  ]],
+  ['Values & Culture Fit', [
+    "Strong cultural alignment with Peepal's ways",
+    'Ownership mindset & people-first approach',
+  ]],
+]);
+
+const RUBRIC_EXEC_SEARCH_TA = createRubric([
+  ['Sales Acumen', [
+    'Client acquisition track record',
+    'C-suite level closure drive & revenue ownership',
+  ]],
+  ['Delivery & Process', [
+    'Completely hands-on in recruitment (comfortable working independently)',
+    'Executive staffing delivery knowledge',
+    'SLA & pricing knowledge',
+  ]],
+  ['Team & Growth Orientation', [
+    'Ability to build team and revenue from scratch',
+    'Has owned PnL targets previously',
+  ]],
+  ['Values & Integrity', [
+    'Empathy & relationship building',
+    'Ownership mindset & cultural fit',
+  ]],
+]);
+
+const RUBRIC_VP_TA = createRubric([
+  ['Delivery & Process', [
+    'Hands-on recruitment capability & delivery execution',
+    'SLA tracking & reporting adherence',
+    'GCC & general client handling experience',
+  ]],
+  ['Sales Acumen', [
+    'New client acquisition capability',
+    'Existing client penetration & revenue expansion capability',
+  ]],
+  ['Team & Growth', [
+    'PnL target ownership',
+    'Ability to build & scale team',
+  ]],
+  ['Values & Integrity', [
+    'Empathy & relationship building',
+    'Ownership mindset & cultural fit',
+  ]],
+]);
+
+const RUBRIC_BD_HEAD = createRubric([
+  ['Revenue & Growth', [
+    'Closure drive & revenue ownership',
+    'Long-term strategic thinking',
+  ]],
+  ['Sales Acumen', [
+    'Communication & persuasion',
+    'Hands On, Aggression & target orientation',
+  ]],
+  ['Delivery & Process', [
+    'Sales-delivery alignment',
+    'SLA & process discipline',
+  ]],
+  ['Values & Integrity', [
+    'Empathy & relationship building',
+    'Ownership mindset & cultural fit',
+  ]],
+]);
+
+const RUBRIC_BD_EXEC_LEAD_MANAGER = createRubric([
+  ['Revenue & Growth', [
+    'Business & market awareness',
+    'Structured thinking & intellect',
+  ]],
+  ['Sales Acumen', [
+    'Communication & persuasion',
+    'Sales pitch + targeting',
+    'Hands-on & aggressive approach',
+  ]],
+  ['Values & Integrity', [
+    'Empathy & relationship building',
+    'Ownership mindset & cultural fit',
+  ]],
+]);
+
+const RUBRIC_MARKETING_LEAD_CM = createRubric([
+  ['Marketing Acumen', [
+    'Brand thinking & creativity',
+    'Overall marketing ownership',
+  ]],
+  ['Growth & Channels', [
+    'B2B marketing & lead generation',
+    'Data-driven thinking & ROI focus',
+  ]],
+  ['Delivery & Process', [
+    'Structured execution capabilities',
+    'Ability to holistically critique design',
+  ]],
+  ['Culture & Drive', [
+    'Initiative & adaptability',
+    'Zeal & intellectual curiosity',
+  ]],
+]);
+
+const RUBRIC_MARKETING_EXEC_CM = createRubric([
+  ['Marketing Delivery & Acumen', [
+    'Brand thinking & creativity',
+    'Design proficiency - static, video or motion',
+    'Structured execution capabilities',
+  ]],
+  ['Growth & Channels', [
+    'B2B marketing & lead generation',
+    'Data-driven thinking & ROI focus',
+  ]],
+  ['Culture & Drive', [
+    'Initiative & adaptability',
+    'Zeal & intellectual curiosity',
+  ]],
+]);
+
+const RUBRIC_MARKET_RESEARCH_CM = createRubric([
+  ['Research & Analytical Thinking', [
+    'Structured thinking & insight generation',
+    'Primary & secondary research - sourcing, validating & integrating',
+  ]],
+  ['Output & Communication', [
+    'Report & deck creation ability',
+    'Data storytelling & simplification',
+    'End-to-end report ownership - from brief to final output',
+  ]],
+  ['Tools & Execution', [
+    'AI / LLM tool proficiency',
+    'Excel, Sheets & presentation tools',
+  ]],
+  ['Culture & Drive', [
+    'Curiosity & intellectual drive',
+    'Speed & accuracy orientation',
+  ]],
+]);
+
+const RUBRIC_BUSINESS_HEAD_C2H = createRubric([
+  ['Sales Acumen', [
+    'Client acquisition track record',
+    'Closure drive & PnL targets ownership',
+  ]],
+  ['Delivery & Process', [
+    'Ability to be hands-on in recruitment',
+    'C2H / contract staffing delivery knowledge',
+    'SLA & pricing knowledge',
+  ]],
+  ['Team & Growth Orientation', [
+    'Ability to build and nurture team & revenue from scratch',
+    'Adaptability - works across team sizes, structures & pace',
+  ]],
+  ['Values & Integrity', [
+    'Empathy & relationship building',
+    'Ownership mindset & cultural fit',
+  ]],
+]);
+
+const RUBRIC_TAD_BD_CR = createRubric([
+  ['Thinking & Problem Solving', [
+    'Relationship building & responsiveness',
+    'Problem solving & opportunity spotting',
+    'Commercial thinking',
+  ]],
+  ['Sales Acumen', [
+    'Communication & persuasion',
+    'Sales pitch + targeting + lead gen',
+    'Hands-on & aggressive approach',
+  ]],
+  ['Values & Integrity', [
+    'Empathy & relationship building',
+    'Ownership mindset & cultural fit',
+  ]],
+]);
+
+const RUBRIC_TAD_MARKETING = createRubric([
+  ['Marketing Delivery & Acumen', [
+    'Brand thinking & creativity',
+    'Design proficiency - static, video or motion',
+    'Structured execution capabilities',
+    'Idea generation & content relevance',
+  ]],
+  ['Growth & Channels', [
+    'Sponsor acquisition & registration growth thinking',
+    'Marketing innovation - ability to grow TAD reach',
+  ]],
+  ['Culture & Drive', [
+    'Initiative & adaptability',
+    'Zeal & intellectual curiosity',
+  ]],
+]);
+
+const RUBRIC_TAD_EVENT_OPERATIONS = createRubric([
+  ['Ownership & Execution', [
+    'End-to-end event accountability',
+    'Follow-through & attention to detail',
+  ]],
+  ['Thinking & Problem Solving', [
+    'Cost-experience balancing & on-ground adaptability',
+    'Audience experience prioritisation',
+  ]],
+  ['Communication & Stakeholder Management', [
+    'Venue negotiation & vendor management',
+    'Sponsor & partner coordination',
+  ]],
+  ['Role Capability', [
+    'Attendee management',
+    'Smooth execution under pressure',
+  ]],
+  ['Culture Fit', [
+    'Initiative & ownership mindset',
+  ]],
+]);
+const ROLE_FEEDBACK_RUBRICS = {
+  "Founder's Office": RUBRIC_FOUNDERS_OFFICE,
+  'Exec Search - TA': RUBRIC_EXEC_SEARCH_TA,
+  'VP - TA': RUBRIC_VP_TA,
+  'Head - BD': RUBRIC_BD_HEAD,
+  'Executive - BD': RUBRIC_BD_EXEC_LEAD_MANAGER,
+  'Lead - BD': RUBRIC_BD_EXEC_LEAD_MANAGER,
+  'Manager - BD': RUBRIC_BD_EXEC_LEAD_MANAGER,
+  'Marketing Lead - Central Marketing': RUBRIC_MARKETING_LEAD_CM,
+  'GD - Central Marketing': RUBRIC_MARKETING_EXEC_CM,
+  'Video Editor - Central Marketing': RUBRIC_MARKETING_EXEC_CM,
+  'Executive - Central Marketing': RUBRIC_MARKETING_EXEC_CM,
+  'Market Research - Central Marketing': RUBRIC_MARKET_RESEARCH_CM,
+  'Business Head - C2H': RUBRIC_BUSINESS_HEAD_C2H,
+  'BD & CR - TAD': RUBRIC_TAD_BD_CR,
+  'MT (BD & CR) - TAD': RUBRIC_TAD_BD_CR,
+  'Marketing Executive - TAD': RUBRIC_TAD_MARKETING,
+  'Marketing Lead - TAD': RUBRIC_TAD_MARKETING,
+  'Event Operations - TAD': RUBRIC_TAD_EVENT_OPERATIONS,
 };
 
 function getFeedbackRubric(candidate) {
@@ -986,7 +1209,7 @@ function buildEmailPreviewHtml(c, stage, customMsg, includeProfile, includeFeedb
       ${actionButtons ? `<div style="display:flex;flex-wrap:wrap;gap:10px">${actionButtons}</div>` : ''}
     </div>
     <div style="background:#f8fafc;padding:12px 24px;border-top:1px solid #e2e8f0">
-      <p style="margin:0;font-size:10px;color:#94a3b8">Sent via Peepal Hiring Portal · ${new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}</p>
+      <p style="margin:0;font-size:10px;color:#94a3b8">Sent via Peepal Hiring Portal · ${new Date().toLocaleDateString('en-GB', { timeZone: 'Asia/Kolkata', day:'numeric', month:'short', year:'numeric' })}</p>
     </div>`;
 }
 

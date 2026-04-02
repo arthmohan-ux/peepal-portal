@@ -1210,13 +1210,13 @@ function getWeekLabel(val) {
   const date = parseDate(val);
   const weekNumber = getWeekNumberInMonth(val);
   if (!date || !weekNumber) return null;
-  return `Week ${weekNumber} ${date.toLocaleString('en-GB', { month: 'long', year: 'numeric' })}`;
+  return `Week ${weekNumber} ${date.toLocaleString('en-GB', { timeZone: 'Asia/Kolkata', month: 'long', year: 'numeric' })}`;
 }
 
 function getMonthLabel(val) {
   const d = parseDate(val);
   if (!d) return null;
-  return d.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+  return d.toLocaleString('en-GB', { timeZone: 'Asia/Kolkata', month: 'long', year: 'numeric' });
 }
 
 function getLatestMonthLabel(dates) {

@@ -48,8 +48,8 @@ const SELECT_STATUSES  = ['Aptitude Select','Final Select'];
 const MULTI_SELECT_CONFIG = {
   filterDept:  { placeholder: 'All Departments', singular: 'Department', plural: 'Departments' },
   filterRole:  { placeholder: 'All Roles',       singular: 'Role',       plural: 'Roles' },
-  filterMonth: { placeholder: 'All Months',      singular: 'Month',      plural: 'Months' },
   filterWeek:  { placeholder: 'All Weeks',       singular: 'Week',       plural: 'Weeks' },
+  filterMonth: { placeholder: 'All Months',      singular: 'Month',      plural: 'Months' },
 };
 
 // ── STATE ──
@@ -245,29 +245,27 @@ function rebuildRoleFilter() {
 }
 
 function populateDateFilters() {
-  const currentMonth = getMultiSelectValues('filterMonth');
   const currentWeek = getMultiSelectValues('filterWeek');
+  const currentMonth = getMultiSelectValues('filterMonth');
 
-  const monthMap = new Map();
   const weekMap = new Map();
+  const monthMap = new Map();
 
   allCandidates.forEach(candidate => {
     const date = parseDate(candidate.sourcingDate);
     if (!date) return;
 
+    const week = getWeekLabel(date);
     const month = getMonthLabel(date);
+    if (week && !weekMap.has(week)) weekMap.set(week, getWeekBucketTimestamp(date));
     if (month && !monthMap.has(month)) monthMap.set(month, new Date(date.getFullYear(), date.getMonth(), 1).getTime());
-    if (!currentMonth.length || currentMonth.includes(month)) {
-      const week = getWeekLabel(date);
-      if (week && !weekMap.has(week)) weekMap.set(week, getWeekBucketTimestamp(date));
-    }
   });
 
-  const months = [...monthMap.entries()].sort((a, b) => b[1] - a[1]).map(([label]) => label);
   const weeks = [...weekMap.entries()].sort((a, b) => b[1] - a[1]).map(([label]) => label);
+  const months = [...monthMap.entries()].sort((a, b) => b[1] - a[1]).map(([label]) => label);
 
-  setMultiSelectOptions('filterMonth', months, currentMonth.filter(month => months.includes(month)));
   setMultiSelectOptions('filterWeek', weeks, currentWeek.filter(week => weeks.includes(week)));
+  setMultiSelectOptions('filterMonth', months, currentMonth.filter(month => months.includes(month)));
 }
 
 // ── TABLE RENDER ──
@@ -430,7 +428,6 @@ function clearFilter(key) {
   if (['dept','role','week','month'].includes(key)) {
     setMultiSelectValues(map[key], []);
     if (key === 'dept') rebuildRoleFilter();
-    if (key === 'month') populateDateFilters();
     if (key === 'dept' || key === 'role') rebuildStatusDropdown(getMultiSelectValues('filterRole'));
   } else {
     el.value = '';
@@ -464,7 +461,6 @@ function toggleMultiSelect(id, event) {
   const root = document.getElementById(id);
   if (!root) return;
   if (id === 'filterRole') rebuildRoleFilter();
-  if (id === 'filterMonth' || id === 'filterWeek') populateDateFilters();
   const isOpen = root.classList.contains('open');
   document.querySelectorAll('.multi-select.open').forEach(el => el.classList.remove('open'));
   if (!isOpen) root.classList.add('open');
@@ -479,8 +475,6 @@ function handleMultiSelectChange(id) {
   if (id === 'filterDept') {
     rebuildRoleFilter();
     rebuildStatusDropdown(getMultiSelectValues('filterRole'));
-  } else if (id === 'filterMonth') {
-    populateDateFilters();
   } else if (id === 'filterRole') {
     rebuildStatusDropdown(getMultiSelectValues('filterRole'));
   }
@@ -559,13 +553,13 @@ function getWeekLabel(val) {
   const date = parseDate(val);
   const weekNumber = getWeekNumberInMonth(val);
   if (!date || !weekNumber) return null;
-  return `Week ${weekNumber} ${date.toLocaleString('en-GB', { month: 'long', year: 'numeric' })}`;
+  return `Week ${weekNumber} ${date.toLocaleString('en-GB', { timeZone: 'Asia/Kolkata', month: 'long', year: 'numeric' })}`;
 }
 
 function getMonthLabel(val) {
   const d = parseDate(val);
   if (!d) return null;
-  return d.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+  return d.toLocaleString('en-GB', { timeZone: 'Asia/Kolkata', month: 'long', year: 'numeric' });
 }
 
 // ── STATUS CLASS HELPER ──
