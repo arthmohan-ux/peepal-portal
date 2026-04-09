@@ -14,7 +14,7 @@ const DEPT_ROLES = {
 };
 
 const ROLE_PIPELINE = {
-  'Consultant - TA':                     ['Screening','Aptitude','Manager Round','Kaveri Round'],
+  'Consultant - TA':                     ['Screening','Aptitude','Manager Round','HR Round'],
   'Senior Consultant - TA':              ['Screening','Aptitude','Manager Round','Kaveri Round'],
   'ATL - TA':                            ['Screening','Aptitude','Manager Round','Kaveri Round'],
   'Management Trainee (Consultant)- TA': ['Screening','Aptitude','Manager Round','Kaveri Round'],
@@ -50,6 +50,7 @@ const FUNNEL_STATUS_ORDER = [
   'Assessment Pending','Assessment Reject','Assesment Under Review',
   'AI Interview Pending','AI Interview Reject',
   'Manager Round Pending','Manager Feedback Pending','Manager Round Reject',
+  'HR Round Pending','HR Feedback Pending','HR Reject',
   'Kaveri Round Pending','Kaveri Feedback Pending','Kaveri Reject',
   'Vijay Round Pending','Vijay Feedback Pending','Vijay Reject',
   'Final Select','Offered','Offer Dropout','Joined','Hold','Drop',
@@ -59,10 +60,11 @@ const VALID_FUNNEL_STATUSES = new Set(FUNNEL_STATUS_ORDER);
 const STATUS_FC_CLASS = {
   'Screen Reject':'fc-reject','Aptitude Reject':'fc-reject',
   'Assessment Reject':'fc-reject','AI Interview Reject':'fc-reject',
-  'Manager Round Reject':'fc-reject','Kaveri Reject':'fc-reject','Vijay Reject':'fc-reject',
+  'Manager Round Reject':'fc-reject','HR Reject':'fc-reject','Kaveri Reject':'fc-reject','Vijay Reject':'fc-reject',
   'Offer Dropout':'fc-reject','Drop':'fc-drop',
   'Aptitude Pending':'fc-pending','Assessment Pending':'fc-pending','Assesment Under Review':'fc-pending',
   'AI Interview Pending':'fc-pending','Manager Round Pending':'fc-pending','Manager Feedback Pending':'fc-pending',
+  'HR Round Pending':'fc-pending','HR Feedback Pending':'fc-pending',
   'Kaveri Round Pending':'fc-pending','Kaveri Feedback Pending':'fc-pending',
   'Vijay Round Pending':'fc-pending','Vijay Feedback Pending':'fc-pending','Hold':'fc-hold',
   'Aptitude Select':'fc-select','Final Select':'fc-select',
@@ -77,6 +79,8 @@ const ACTIVE_POST_APTITUDE_STATUSES = new Set([
   'AI Interview Pending',
   'Manager Round Pending',
   'Manager Feedback Pending',
+  'HR Round Pending',
+  'HR Feedback Pending',
   'Kaveri Round Pending',
   'Kaveri Feedback Pending',
   'Vijay Round Pending',
@@ -89,6 +93,8 @@ const ROLE_DROPDOWN_STATUSES = new Set([
   'AI Interview Pending',
   'Manager Round Pending',
   'Manager Feedback Pending',
+  'HR Round Pending',
+  'HR Feedback Pending',
   'Kaveri Round Pending',
   'Kaveri Feedback Pending',
   'Vijay Round Pending',
@@ -105,6 +111,8 @@ const OPEN_STAGE_ORDER = [
   'AI Interview Pending',
   'Manager Round Pending',
   'Manager Feedback Pending',
+  'HR Round Pending',
+  'HR Feedback Pending',
   'Kaveri Round Pending',
   'Kaveri Feedback Pending',
   'Vijay Round Pending',
@@ -116,6 +124,7 @@ const STAGE_DATE_FIELD = {
   'Assessment':    'assessmentDate',
   'AI Interview':  'assessmentDate',
   'Manager Round': 'managerRoundDate',
+  'HR Round':      'kaveriRoundDate',
   'Kaveri Round':  'kaveriRoundDate',
   'Vijay Round':   'vijayRoundDate',
   'Offered':       'offeredDate',
@@ -137,6 +146,9 @@ const CURRENT_STATUS_TO_STAGE = {
   'Manager Round Pending': 'Manager Round',
   'Manager Feedback Pending': 'Manager Round',
   'Manager Round Reject': 'Manager Round',
+  'HR Round Pending': 'HR Round',
+  'HR Feedback Pending': 'HR Round',
+  'HR Reject': 'HR Round',
   'Kaveri Round Pending': 'Kaveri Round',
   'Kaveri Feedback Pending': 'Kaveri Round',
   'Kaveri Reject': 'Kaveri Round',
@@ -532,7 +544,7 @@ function renderTATSection() {
   }
 
   // All transitions across shown roles in pipeline order
-  const pipelineOrder = ['Screening','Aptitude','Assessment','AI Interview','Manager Round','Kaveri Round','Vijay Round','Offered','Joined'];
+  const pipelineOrder = ['Screening','Aptitude','Assessment','AI Interview','Manager Round','HR Round','Kaveri Round','Vijay Round','Offered','Joined'];
   const allTransSet = new Set();
   tatRoles.forEach(rl => {
     const pl = getRolePipeline(rl);
@@ -738,7 +750,7 @@ function renderRecruiterPerformance() {
     if (c.status === 'Joined') recStats[r].joined++;
     else if (['Final Select','Offered'].includes(c.status)) recStats[r].selected++;
     else if (['Screen Reject','Aptitude Reject','Assessment Reject','AI Interview Reject',
-      'Manager Round Reject','Kaveri Reject','Vijay Reject','Offer Dropout','Drop'].includes(c.status)) recStats[r].rejected++;
+      'Manager Round Reject','HR Reject','Kaveri Reject','Vijay Reject','Offer Dropout','Drop'].includes(c.status)) recStats[r].rejected++;
     else recStats[r].active++;
   }
 
@@ -880,6 +892,8 @@ function buildRatioMetrics(candidates) {
   const interviewCount = candidates.filter(hasAnyInterview).length;
   const managerCandidates = candidates.filter(c => hasReachedStage(c, 'Manager Round')).length;
   const managerSelected = candidates.filter(c => hasClearedStage(c, 'Manager Round')).length;
+  const hrCandidates = candidates.filter(c => hasReachedStage(c, 'HR Round')).length;
+  const hrSelected = candidates.filter(c => hasClearedStage(c, 'HR Round')).length;
   const kaveriCandidates = candidates.filter(c => hasReachedStage(c, 'Kaveri Round')).length;
   const kaveriSelected = candidates.filter(c => hasClearedStage(c, 'Kaveri Round')).length;
   const vijayCandidates = candidates.filter(c => hasReachedStage(c, 'Vijay Round')).length;
@@ -904,6 +918,13 @@ function buildRatioMetrics(candidates) {
       denominator: managerCandidates,
       breakdown: `${managerSelected} selected after manager out of ${managerCandidates} who reached manager`,
       note: 'Later-stage movement or later-stage rejection still counts as manager selected.',
+    },
+    {
+      label: 'HR Select Rate',
+      numerator: hrSelected,
+      denominator: hrCandidates,
+      breakdown: `${hrSelected} selected after HR out of ${hrCandidates} who reached HR`,
+      note: 'For Consultant - TA, any terminal stage counts as clearing the HR round.',
     },
     {
       label: 'Kaveri Select Rate',
@@ -1144,6 +1165,12 @@ function getOpenStageAging(candidate) {
     case 'Manager Feedback Pending':
       startDate = getStageDate(candidate, 'Manager Round') || getStageEntryDate(candidate, 'Manager Round', pipeline);
       break;
+    case 'HR Round Pending':
+      startDate = getStageEntryDate(candidate, 'HR Round', pipeline);
+      break;
+    case 'HR Feedback Pending':
+      startDate = getStageDate(candidate, 'HR Round') || getStageEntryDate(candidate, 'HR Round', pipeline);
+      break;
     case 'Kaveri Round Pending':
       startDate = getStageEntryDate(candidate, 'Kaveri Round', pipeline);
       break;
@@ -1260,7 +1287,7 @@ function getCandidateLastActivityDate(candidate) {
 }
 
 function hasAnyInterview(candidate) {
-  return ['Assessment', 'AI Interview', 'Manager Round', 'Kaveri Round', 'Vijay Round']
+  return ['Assessment', 'AI Interview', 'Manager Round', 'HR Round', 'Kaveri Round', 'Vijay Round']
     .some(stage => hasReachedStage(candidate, stage));
 }
 

@@ -3,7 +3,7 @@
 
 // ── DEPT PIPELINE CONFIG (mirrors GAS script) ──
 const ROLE_PIPELINE = {
-  'Consultant - TA':                     ['Screening','Aptitude','Manager Round','Kaveri Round'],
+  'Consultant - TA':                     ['Screening','Aptitude','Manager Round','HR Round'],
   'Senior Consultant - TA':              ['Screening','Aptitude','Manager Round','Kaveri Round'],
   'ATL - TA':                            ['Screening','Aptitude','Manager Round','Kaveri Round'],
   'Management Trainee (Consultant)- TA': ['Screening','Aptitude','Manager Round','Kaveri Round'],
@@ -42,8 +42,8 @@ const DEPT_ROLES = {
   "Founder's Office": ["Founder's Office"],
 };
 
-const REJECT_STATUSES  = ['Screen Reject','Aptitude Reject','Assessment Reject','AI Interview Reject','Manager Round Reject','Kaveri Reject','Vijay Reject','Offer Dropout','Drop'];
-const PENDING_STATUSES = ['Aptitude Pending','Assessment Pending','Assesment Under Review','AI Interview Pending','Manager Round Pending','Manager Feedback Pending','Kaveri Round Pending','Kaveri Feedback Pending','Vijay Round Pending','Vijay Feedback Pending','Hold'];
+const REJECT_STATUSES  = ['Screen Reject','Aptitude Reject','Assessment Reject','AI Interview Reject','Manager Round Reject','HR Reject','Kaveri Reject','Vijay Reject','Offer Dropout','Drop'];
+const PENDING_STATUSES = ['Aptitude Pending','Assessment Pending','Assesment Under Review','AI Interview Pending','Manager Round Pending','Manager Feedback Pending','HR Round Pending','HR Feedback Pending','Kaveri Round Pending','Kaveri Feedback Pending','Vijay Round Pending','Vijay Feedback Pending','Hold'];
 const SELECT_STATUSES  = ['Aptitude Select','Final Select'];
 const MULTI_SELECT_CONFIG = {
   filterDept:  { placeholder: 'All Departments', singular: 'Department', plural: 'Departments' },
@@ -176,6 +176,7 @@ const STAGE_STATUSES = {
   'Assessment':    ['Assessment Pending', 'Assessment Reject', 'Assesment Under Review'],
   'AI Interview':  ['AI Interview Pending', 'AI Interview Reject'],
   'Manager Round': ['Manager Round Pending', 'Manager Feedback Pending', 'Manager Round Reject'],
+  'HR Round':      ['HR Round Pending', 'HR Feedback Pending', 'HR Reject'],
   'Kaveri Round':  ['Kaveri Round Pending', 'Kaveri Feedback Pending', 'Kaveri Reject'],
   'Vijay Round':   ['Vijay Round Pending', 'Vijay Feedback Pending', 'Vijay Reject'],
 };
@@ -209,6 +210,7 @@ function rebuildStatusDropdown(roles) {
     'Assessment Pending','Assessment Reject','Assesment Under Review',
     'AI Interview Pending','AI Interview Reject',
     'Manager Round Pending','Manager Feedback Pending','Manager Round Reject',
+    'HR Round Pending','HR Feedback Pending','HR Reject',
     'Kaveri Round Pending','Kaveri Feedback Pending','Kaveri Reject',
     'Vijay Round Pending','Vijay Feedback Pending','Vijay Reject',
     'Final Select','Offered','Offer Dropout','Joined','Hold','Drop',

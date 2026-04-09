@@ -726,6 +726,7 @@ function buildPipelineTimeline(c, pipeline) {
     'Assessment Reject':      'Assessment',
     'AI Interview Reject':    'AI Interview',
     'Manager Round Reject':   'Manager Round',
+    'HR Reject':              'HR Round',
     'Kaveri Reject':          'Kaveri Round',
     'Vijay Reject':           'Vijay Round',
   };
@@ -736,6 +737,7 @@ function buildPipelineTimeline(c, pipeline) {
     'Assessment':    c.assessmentDate,
     'AI Interview':  c.assessmentDate,
     'Manager Round': c.managerRoundDate,
+    'HR Round':      c.kaveriRoundDate,
     'Kaveri Round':  c.kaveriRoundDate,
     'Vijay Round':   c.vijayRoundDate,
     'Offered':       c.offeredDate,
@@ -760,7 +762,7 @@ function buildPipelineTimeline(c, pipeline) {
 
   const stageIcons = {
     'Screening':     'S', 'Aptitude': 'A', 'Assessment': 'T',
-    'AI Interview':  'AI','Manager Round': 'M', 'Kaveri Round': 'K',
+    'AI Interview':  'AI','Manager Round': 'M', 'HR Round': 'HR', 'Kaveri Round': 'K',
     'Vijay Round':   'V', 'Offered': 'O', 'Joined': 'J',
   };
 
@@ -786,6 +788,7 @@ function buildPipelineDatesTable(c, pipeline) {
     'Assessment':    { label: 'Assessment Date',     value: c.assessmentDate },
     'AI Interview':  { label: 'AI Interview Date',   value: c.assessmentDate },
     'Manager Round': { label: 'Manager Round Date',  value: c.managerRoundDate },
+    'HR Round':      { label: 'HR Round Date',       value: c.kaveriRoundDate },
     'Kaveri Round':  { label: 'Kaveri Round Date',   value: c.kaveriRoundDate },
     'Vijay Round':   { label: 'Vijay Round Date',    value: c.vijayRoundDate },
   };
@@ -871,7 +874,7 @@ function buildFeedbackForm(c) {
   const pipeline  = window.ROLE_PIPELINE[c.role] || [];
 
   // Interview rounds only — no Aptitude, no Screening
-  const INTERVIEW_ROUNDS = ['Assessment', 'AI Interview', 'Manager Round', 'Kaveri Round', 'Vijay Round'];
+  const INTERVIEW_ROUNDS = ['Assessment', 'AI Interview', 'Manager Round', 'HR Round', 'Kaveri Round', 'Vijay Round'];
   const availableRounds = pipeline.filter(s => INTERVIEW_ROUNDS.includes(s));
   const permittedRounds = getPermittedFeedbackStages(userEmail, c, availableRounds);
 
