@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Peepal Hiring Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0D1117;--surface:#161B22;--surface2:#21262D;--border:#30363D;
+  --text:#E6EDF3;--muted:#8B949E;--subtle:#484F58;
+  --blue:#58A6FF;--blue-dim:#1F3A5C;--blue-bright:#79C0FF;
+  --green:#3FB950;--green-dim:#1A3A26;
+  --orange:#F0883E;--orange-dim:#3D2008;
+  --red:#F85149;--red-dim:#3D0C09;
+  --purple:#BC8CFF;--purple-dim:#2D1F5E;
+  --yellow:#D29922;--yellow-dim:#3D2E00;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'Sora',sans-serif;
+}
+html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--text);font-size:13px}
+.nav{height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;position:sticky;top:0;z-index:100}
+.nav-left{display:flex;align-items:center;gap:10px}
+.nav-logo{width:30px;height:30px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#0D1117}
+.nav-title{font-size:13px;font-weight:700}
+.admin-pill{background:var(--red-dim);color:var(--red);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:3px 8px;border-radius:4px;border:1px solid rgba(248,81,73,0.3);font-family:var(--mono)}
+.nav-right{display:flex;align-items:center;gap:8px}
+.nav-user{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.nav-link{font-size:11px;font-weight:600;padding:5px 12px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer;text-decoration:none;transition:all .15s}
+.nav-link:hover{color:var(--text);border-color:var(--subtle)}
+.layout{display:flex;min-height:calc(100vh - 52px)}
+.sidebar{width:200px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:16px 0;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto}
+.sidebar-group{padding:0 8px;margin-bottom:20px}
+.sidebar-group-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--subtle);padding:0 8px;margin-bottom:4px;font-family:var(--mono)}
+.sidebar-btn{display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border-radius:6px;border:none;background:none;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;text-align:left;transition:all .12s;font-family:var(--sans)}
+.sidebar-btn:hover{background:var(--surface2);color:var(--text)}
+.sidebar-btn.active{background:var(--blue-dim);color:var(--blue);font-weight:600}
+.sidebar-icon{font-size:13px;width:18px;text-align:center;flex-shrink:0}
+.sidebar-divider{height:1px;background:var(--border);margin:8px 16px}
+.main{flex:1;padding:24px 28px;overflow-x:hidden;max-width:900px}
+.page{display:none}
+.page.active{display:block}
+.page-hd{margin-bottom:20px}
+.page-hd h1{font-size:18px;font-weight:800;margin-bottom:4px}
+.page-hd p{font-size:12px;color:var(--muted);line-height:1.5}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.card-hd{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2)}
+.card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;font-family:var(--mono)}
+.card-sub{font-size:10px;color:var(--muted);margin-top:2px;font-weight:400;text-transform:none;letter-spacing:0}
+.card-body{padding:16px}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:all .15s;font-family:var(--sans);white-space:nowrap}
+.btn-blue{background:var(--blue);color:#0D1117;border-color:var(--blue)}
+.btn-blue:hover{background:var(--blue-bright)}
+.btn-ghost{background:var(--surface2);color:var(--muted);border-color:var(--border)}
+.btn-ghost:hover{color:var(--text);border-color:var(--subtle)}
+.btn-red{background:var(--red-dim);color:var(--red);border-color:rgba(248,81,73,.3)}
+.btn-red:hover{background:#5c1a16}
+.btn-sm{padding:4px 10px;font-size:10px}
+.field-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:5px;font-family:var(--mono)}
+.inp{width:100%;height:34px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:0 10px;font-size:12px;color:var(--text);font-family:var(--sans);outline:none;transition:border-color .15s}
+.inp:focus{border-color:var(--blue)}
+.inp.mono{font-family:var(--mono);font-size:11px}
+.inp-row{display:flex;gap:8px;align-items:flex-end}
+select.inp{cursor:pointer}
+.tags{display:flex;flex-wrap:wrap;gap:5px;min-height:28px;align-items:center}
+.tag{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;background:var(--blue-dim);color:var(--blue);border:1px solid rgba(88,166,255,.2);font-family:var(--mono)}
+.tag-x{background:none;border:none;cursor:pointer;color:rgba(88,166,255,.5);font-size:14px;line-height:1;padding:0;display:flex;align-items:center}
+.tag-x:hover{color:var(--red)}
+.dept-block{border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden}
+.dept-hd{padding:10px 14px;background:var(--surface2);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;transition:background .12s}
+.dept-hd:hover{background:#2A3039}
+.dept-hd-left{display:flex;align-items:center;gap:10px}
+.dept-hd-name{font-size:12px;font-weight:700}
+.dept-hd-count{font-size:10px;color:var(--muted);font-family:var(--mono)}
+.dept-hd-arrow{font-size:10px;color:var(--muted);transition:transform .2s;margin-left:4px}
+.dept-hd-arrow.open{transform:rotate(90deg)}
+.dept-body{padding:14px;border-top:1px solid var(--border);display:none}
+.dept-body.open{display:block}
+.role-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
+.role-row:last-child{border-bottom:none}
+.role-name{flex:1;font-size:11px;font-weight:500;color:var(--text);font-family:var(--mono)}
+.pipeline-row{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin:4px 0}
+.pchip{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;font-family:var(--mono);border:1px solid}
+.pchip-screening{background:var(--green-dim);color:var(--green);border-color:rgba(63,185,80,.3)}
+.pchip-aptitude{background:var(--yellow-dim);color:var(--yellow);border-color:rgba(210,153,34,.3)}
+.pchip-assessment{background:var(--orange-dim);color:var(--orange);border-color:rgba(240,136,62,.3)}
+.pchip-ai{background:var(--purple-dim);color:var(--purple);border-color:rgba(188,140,255,.3)}
+.pchip-manager{background:var(--blue-dim);color:var(--blue);border-color:rgba(88,166,255,.3)}
+.pchip-hr{background:#1a2a3a;color:#60a5fa;border-color:rgba(96,165,250,.3)}
+.pchip-kaveri{background:var(--purple-dim);color:#e879f9;border-color:rgba(232,121,249,.3)}
+.pchip-vijay{background:var(--red-dim);color:var(--orange);border-color:rgba(240,136,62,.3)}
+.p-arrow{color:var(--subtle);font-size:9px}
+.pipeline-editor{margin-top:10px;padding:12px;background:var(--bg);border-radius:6px;border:1px solid var(--border)}
+.stage-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.stage-chk{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);cursor:pointer;font-size:11px;font-weight:600;color:var(--muted);font-family:var(--mono);background:var(--surface);transition:all .12s;user-select:none}
+.stage-chk:hover{border-color:var(--subtle);color:var(--text)}
+.stage-chk.on{background:var(--blue-dim);color:var(--blue);border-color:rgba(88,166,255,.4)}
+.atbl{width:100%;border-collapse:collapse}
+.atbl th{padding:8px 12px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);background:var(--surface2);text-align:left;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.atbl td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:11px;vertical-align:middle}
+.atbl tr:last-child td{border-bottom:none}
+.atbl tr:hover td{background:var(--surface2)}
+.rpill{display:inline-block;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;font-family:var(--mono)}
+.rp-admin{background:var(--red-dim);color:var(--red)}
+.rp-recruiter{background:var(--blue-dim);color:var(--blue)}
+.rp-manager{background:var(--green-dim);color:var(--green)}
+.rp-kaveri{background:var(--purple-dim);color:var(--purple)}
+.rp-vijay{background:var(--orange-dim);color:var(--orange)}
+.ttbl{width:100%;border-collapse:collapse}
+.ttbl td{padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px}
+.ttbl tr:last-child td{border-bottom:none}
+.ttbl td:first-child{color:var(--text);font-family:var(--mono);font-size:11px}
+.tinp{width:60px;height:30px;background:var(--bg);border:1px solid var(--border);border-radius:6px;text-align:center;font-size:13px;font-weight:700;color:var(--blue);font-family:var(--mono);outline:none}
+.tinp:focus{border-color:var(--blue)}
+.person-row{display:grid;grid-template-columns:130px 1fr auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.person-row:last-child{border-bottom:none}
+.mgr-row{display:grid;grid-template-columns:150px 1fr auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.mgr-row:last-child{border-bottom:none}
+.ma-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.ma-row:last-child{border-bottom:none}
+.ma-role{width:210px;flex-shrink:0;font-size:11px;font-weight:600;font-family:var(--mono);color:var(--text);padding-top:6px;line-height:1.4}
+.code-block{background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.code-hd{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:var(--surface2)}
+.code-file{font-size:11px;font-weight:600;color:var(--muted);font-family:var(--mono)}
+.code-file span{color:var(--blue)}
+.copy-btn{padding:4px 12px;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-family:var(--mono);transition:all .15s}
+.copy-btn:hover{color:var(--text);border-color:var(--subtle)}
+.copy-btn.ok{background:var(--green-dim);color:var(--green);border-color:rgba(63,185,80,.3)}
+.code-ta{width:100%;background:transparent;border:none;outline:none;color:#a5d6ff;font-family:var(--mono);font-size:11px;line-height:1.7;padding:14px;resize:vertical;min-height:160px}
+.gen-bar{background:linear-gradient(135deg,#1a2f5e,#0f2040);border:1px solid rgba(88,166,255,.2);border-radius:10px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.gen-bar-text h3{font-size:14px;font-weight:800;margin-bottom:3px}
+.gen-bar-text p{font-size:11px;color:var(--muted)}
+.gen-btn{background:var(--blue);color:#0D1117;font-weight:800;font-size:12px;padding:9px 20px;border-radius:7px;border:none;cursor:pointer;transition:all .15s;font-family:var(--sans)}
+.gen-btn:hover{background:var(--blue-bright)}
+.step{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)}
+.step:last-child{border-bottom:none}
+.step-num{width:26px;height:26px;border-radius:50%;background:var(--blue);color:#0D1117;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0}
+.step-body h4{font-size:13px;font-weight:700;margin-bottom:4px}
+.step-body p{font-size:11px;color:var(--muted);line-height:1.6}
+code{background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:var(--mono);font-size:10px;color:var(--blue);border:1px solid var(--border)}
+.info{background:var(--blue-dim);border-left:3px solid var(--blue);border-radius:0 6px 6px 0;padding:10px 14px;font-size:11px;color:#a5d6ff;line-height:1.6;margin-bottom:14px}
+.warn{background:var(--yellow-dim);border-left:3px solid var(--yellow);border-radius:0 6px 6px 0;padding:10px 14px;font-size:11px;color:#f0c060;line-height:1.6;margin-bottom:14px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.5);transition:all .25s;opacity:0;transform:translateY(6px);z-index:9999;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.ok{border-color:rgba(63,185,80,.4);color:var(--green)}
+.hidden{display:none!important}
+.sep{height:1px;background:var(--border);margin:12px 0}
+.empty{padding:24px;text-align:center;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-left">
+    <div class="nav-logo">P</div>
+    <div class="nav-title">Peepal Hiring Portal</div>
+    <span class="admin-pill">admin</span>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user" id="user-name"></span>
+    <a href="/dashboard" class="nav-link">← Dashboard</a>
+    <button onclick="logout()" class="nav-link">Sign out</button>
+  </div>
+</nav>
+
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-group">
+    <div class="sidebar-group-label">Config</div>
+    <button class="sidebar-btn active" onclick="nav('depts',this)"><span class="sidebar-icon">🏢</span>Depts & Roles</button>
+    <button class="sidebar-btn" onclick="nav('pipelines',this)"><span class="sidebar-icon">🔀</span>Pipelines</button>
+    <button class="sidebar-btn" onclick="nav('managers',this)"><span class="sidebar-icon">👥</span>Role → Managers</button>
+    <button class="sidebar-btn" onclick="nav('people',this)"><span class="sidebar-icon">👤</span>People & Emails</button>
+    <button class="sidebar-btn" onclick="nav('access',this)"><span class="sidebar-icon">🔐</span>Portal Access</button>
+  </div>
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-group">
+    <div class="sidebar-group-label">Automations</div>
+    <button class="sidebar-btn" onclick="nav('gas',this)"><span class="sidebar-icon">📧</span>Email Nudges</button>
+  </div>
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-group">
+    <div class="sidebar-group-label">Output</div>
+    <button class="sidebar-btn" onclick="nav('generate',this)"><span class="sidebar-icon">⚙️</span>Generate Code</button>
+    <button class="sidebar-btn" onclick="nav('deploy',this)"><span class="sidebar-icon">🚀</span>Deploy Guide</button>
+  </div>
+</aside>
+
+<main class="main">
+
+<!-- DEPTS & ROLES -->
+<div class="page active" id="page-depts">
+  <div class="page-hd"><h1>Departments & Roles</h1><p>Add, rename, or remove departments and their roles. Role order controls dropdown ordering.</p></div>
+  <div class="info">Changes are <strong>in-memory only</strong> until you generate + deploy. Nothing on the live portal changes until you push.</div>
+  <div class="card">
+    <div class="card-hd"><span class="card-title">Add Department</span></div>
+    <div class="card-body">
+      <div class="inp-row" style="max-width:380px">
+        <input id="new-dept" class="inp" placeholder="e.g. Finance" style="flex:1">
+        <button class="btn btn-blue" onclick="addDept()">+ Add Dept</button>
+      </div>
+    </div>
+  </div>
+  <div id="dept-blocks"></div>
+</div>
+
+<!-- PIPELINES -->
+<div class="page" id="page-pipelines">
+  <div class="page-hd"><h1>Role Pipelines</h1><p>Define interview stages per role. Screening is always first. Order determines date-gate logic in the Google Sheet.</p></div>
+  <div class="warn">Stage order matters for Apps Script date-gating. Don't reorder stages for existing roles with live candidates.</div>
+  <div id="pipeline-blocks"></div>
+</div>
+
+<!-- MANAGERS -->
+<div class="page" id="page-managers">
+  <div class="page-hd"><h1>Role → Manager Assignments</h1><p>Which managers appear in the Manager dropdown for each role in the Google Sheet. Use first-name labels matching the Manager Name→Email section.</p></div>
+  <div class="card">
+    <div class="card-hd"><span class="card-title">Assignments</span></div>
+    <div class="card-body" style="padding:0 16px"><div id="manager-assign-list"></div></div>
+  </div>
+</div>
+
+<!-- PEOPLE & EMAILS -->
+<div class="page" id="page-people">
+  <div class="page-hd"><h1>People & Emails</h1><p>Master directory used for the portal's email recipient picker and for GAS email routing.</p></div>
+  <div class="card">
+    <div class="card-hd">
+      <div><span class="card-title">Known People</span><div class="card-sub">Portal email recipient picker</div></div>
+      <button class="btn btn-blue btn-sm" onclick="addPerson()">+ Add Person</button>
+    </div>
+    <div class="card-body" style="padding:0 16px"><div id="people-list"></div></div>
+  </div>
+  <div class="card">
+    <div class="card-hd">
+      <div><span class="card-title">Manager Name → Email</span><div class="card-sub">Maps sheet "Manager" column value to email for portal permissions</div></div>
+      <button class="btn btn-blue btn-sm" onclick="addMgrEmail()">+ Add</button>
+    </div>
+    <div class="card-body" style="padding:0 16px"><div id="mgr-email-list"></div></div>
+  </div>
+  <div class="card">
+    <div class="card-hd">
+      <div><span class="card-title">Recruiter Names</span><div class="card-sub">Names in Recruiter dropdown in Google Sheets</div></div>
+    </div>
+    <div class="card-body">
+      <div class="tags" id="recruiter-tags"></div>
+      <div class="sep"></div>
+      <div class="inp-row" style="max-width:300px">
+        <input id="new-recruiter" class="inp mono" placeholder="First name" style="flex:1">
+        <button class="btn btn-ghost btn-sm" onclick="addRecruiter()">+ Add</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ACCESS -->
+<div class="page" id="page-access">
+  <div class="page-hd"><h1>Portal Access Control</h1><p>Who can log in and what they can do. All restricted to @peepalconsulting.com via Google OAuth.</p></div>
+  <div class="warn"><strong>Admin</strong> role can access this admin panel. Currently: Arth, Renjith, Kaveri.</div>
+  <div class="card">
+    <div class="card-body" style="padding:0">
+      <table class="atbl">
+        <thead><tr><th>Email</th><th>Role</th><th>Can Do</th><th style="width:70px"></th></tr></thead>
+        <tbody id="access-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><span class="card-title">Add Access</span></div>
+    <div class="card-body">
+      <div class="inp-row" style="max-width:580px">
+        <div style="flex:2"><div class="field-label">Email</div><input id="new-acc-email" class="inp mono" placeholder="name@peepalconsulting.com"></div>
+        <div style="flex:1"><div class="field-label">Role</div>
+          <select id="new-acc-role" class="inp">
+            <option value="admins">Admin</option>
+            <option value="recruiters" selected>Recruiter</option>
+            <option value="managers">Manager</option>
+            <option value="kaveri">Kaveri</option>
+            <option value="vijay">Vijay</option>
+          </select>
+        </div>
+        <div style="align-self:flex-end"><button class="btn btn-blue" onclick="addAccess()">+ Add</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GAS EMAIL -->
+<div class="page" id="page-gas">
+  <div class="page-hd"><h1>Email Nudge Config</h1><p>Settings for daily automated reminder emails sent from Google Apps Script.</p></div>
+  <div class="card">
+    <div class="card-hd"><span class="card-title">Key Recipients</span></div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div><div class="field-label">Renjith (CC'd on all emails)</div><input id="gas-renjith" class="inp mono"></div>
+        <div><div class="field-label">Kaveri (Kaveri Round emails)</div><input id="gas-kaveri" class="inp mono"></div>
+        <div><div class="field-label">Vijay (Vijay Round emails)</div><input id="gas-vijay" class="inp mono"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><div><span class="card-title">Nudge Thresholds</span><div class="card-sub">Days a candidate must be in a status before email fires</div></div></div>
+    <div class="card-body" style="padding:0"><table class="ttbl"><tbody id="threshold-tbody"></tbody></table></div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><div><span class="card-title">Portal Base URL</span><div class="card-sub">Used in "View Profile" buttons in nudge emails</div></div></div>
+    <div class="card-body"><input id="gas-portal-url" class="inp mono" style="max-width:500px"></div>
+  </div>
+</div>
+
+<!-- GENERATE -->
+<div class="page" id="page-generate">
+  <div class="page-hd"><h1>Generate Code</h1><p>Produces copy-paste ready code blocks from your current config. Paste each into the right file, then git push.</p></div>
+  <div class="gen-bar">
+    <div class="gen-bar-text"><h3>Ready to generate?</h3><p>Click to produce updated code blocks from your current in-memory config.</p></div>
+    <button class="gen-btn" onclick="generateAll()">⚙ Generate All</button>
+  </div>
+  <div id="gen-out" class="hidden">
+    <div class="code-block">
+      <div class="code-hd"><span class="code-file">📄 <span>public/src/config.js</span> — replace entire file</span><button class="copy-btn" onclick="copyOut('out-config',this)">Copy</button></div>
+      <textarea class="code-ta" id="out-config" rows="18" readonly></textarea>
+    </div>
+    <div class="code-block">
+      <div class="code-hd"><span class="code-file">📄 <span>netlify/functions/feedback.js</span> — replace ACCESS + MANAGER_NAME_EMAIL constants only</span><button class="copy-btn" onclick="copyOut('out-feedback',this)">Copy</button></div>
+      <textarea class="code-ta" id="out-feedback" rows="14" readonly></textarea>
+    </div>
+    <div class="code-block">
+      <div class="code-hd"><span class="code-file">📄 <span>netlify/functions/admin-page.js</span> — replace ADMIN_EMAILS array only</span><button class="copy-btn" onclick="copyOut('out-admin-fn',this)">Copy</button></div>
+      <textarea class="code-ta" id="out-admin-fn" rows="5" readonly></textarea>
+    </div>
+    <div class="code-block">
+      <div class="code-hd"><span class="code-file">📄 <span>HiringTracker_v1.gs</span> — replace DEPT_ROLES, ROLE_PIPELINE, ROLE_MANAGERS, RECRUITERS</span><button class="copy-btn" onclick="copyOut('out-gas-tracker',this)">Copy</button></div>
+      <textarea class="code-ta" id="out-gas-tracker" rows="20" readonly></textarea>
+    </div>
+    <div class="code-block">
+      <div class="code-hd"><span class="code-file">📄 <span>EmailAutomations.gs</span> — replace EA, STATUS_THRESHOLD, MANAGER_EMAILS, RECRUITER_EMAILS</span><button class="copy-btn" onclick="copyOut('out-gas-email',this)">Copy</button></div>
+      <textarea class="code-ta" id="out-gas-email" rows="20" readonly></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- DEPLOY GUIDE -->
+<div class="page" id="page-deploy">
+  <div class="page-hd"><h1>Deploy Guide</h1><p>How to apply changes from this panel to the live portal and Google Sheets.</p></div>
+  <div class="card">
+    <div class="card-hd"><span class="card-title">Portal (Netlify) — 4 steps</span></div>
+    <div class="card-body" style="padding:4px 0">
+      <div class="step"><div class="step-num">1</div><div class="step-body"><h4>Make your changes here</h4><p>Edit roles, pipelines, access, people in this admin panel. Nothing is saved yet — it's all in memory.</p></div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-body"><h4>Go to Generate Code</h4><p>Click "Generate All" — you'll get a code block for each file that needs updating.</p></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-body"><h4>Paste into your repo</h4><p>Each block tells you exactly which file and what to replace. For <code>config.js</code>, replace the whole file. For <code>feedback.js</code> and <code>admin-page.js</code>, replace only the constant shown.</p></div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-body"><h4>Push to git</h4><p><code>git add . && git commit -m "config: update" && git push</code> — Netlify auto-deploys in ~30 seconds.</p></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><span class="card-title">Google Apps Script — 3 steps</span></div>
+    <div class="card-body" style="padding:4px 0">
+      <div class="step"><div class="step-num">1</div><div class="step-body"><h4>Generate the GAS blocks</h4><p>Same Generate page — you get blocks for <code>HiringTracker_v1.gs</code> and <code>EmailAutomations.gs</code>.</p></div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-body"><h4>Paste into Apps Script</h4><p>Sheet → Extensions → Apps Script. Find the constant (e.g. <code>const DEPT_ROLES = {</code>) and replace the whole object. Ctrl+S to save.</p></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-body"><h4>Run Refresh Config in the sheet</h4><p>Use <code>📋 Hiring Tracker → 🔄 Refresh Config</code> to apply dropdown changes to existing rows.</p></div></div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="/src/config.js"></script>
+<script>
+const C = window.PORTAL_CONFIG;
+const S = {
+  deptOrder:        [...C.DEPT_ORDER],
+  deptRoles:        JSON.parse(JSON.stringify(C.DEPT_ROLES)),
+  rolePipeline:     JSON.parse(JSON.stringify(C.ROLE_PIPELINE)),
+  roleManagers:     JSON.parse(JSON.stringify(C.ROLE_MANAGERS)),
+  recruiters:       [...C.RECRUITERS],
+  access:           JSON.parse(JSON.stringify(C.ACCESS)),
+  managerNameEmail: JSON.parse(JSON.stringify(C.MANAGER_NAME_EMAIL)),
+  knownPeople:      JSON.parse(JSON.stringify(C.KNOWN_PEOPLE)),
+  adminEmails:      [...C.ADMIN_EMAILS],
+  gas: {
+    renjith:         C.GAS.RENJITH,
+    kaveri:          C.GAS.KAVERI,
+    vijay:           C.GAS.VIJAY,
+    portalUrl:       C.GAS.PORTAL_URL,
+    thresholds:      JSON.parse(JSON.stringify(C.GAS.STATUS_THRESHOLD)),
+    managerEmails:   JSON.parse(JSON.stringify(C.GAS.MANAGER_EMAILS)),
+    recruiterEmails: JSON.parse(JSON.stringify(C.GAS.RECRUITER_EMAILS)),
+  },
+};
+
+const ALL_STAGES = ['Screening','Aptitude','Assessment','AI Interview','Manager Round','HR Round','Kaveri Round','Vijay Round'];
+const STAGE_CLS = {'Screening':'pchip-screening','Aptitude':'pchip-aptitude','Assessment':'pchip-assessment','AI Interview':'pchip-ai','Manager Round':'pchip-manager','HR Round':'pchip-hr','Kaveri Round':'pchip-kaveri','Vijay Round':'pchip-vijay'};
+const ROLE_PERMS = {admins:'Full access + Admin Panel',recruiters:'View all, add/edit feedback',managers:'View assigned + Manager Round feedback',kaveri:'View all + Kaveri Round feedback',vijay:'View all + Vijay Round feedback'};
+
+// AUTH
+(async()=>{try{const r=await fetch('/api/me');if(r.ok){const u=await r.json();document.getElementById('user-name').textContent=u.name||u.email}}catch{}})();
+function logout(){document.cookie='peepal_session=; Max-Age=0; Path=/';window.location.href='/login'}
+
+// NAV
+function nav(page, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  btn.classList.add('active');
+  const renders = {depts:renderDepts,pipelines:renderPipelines,managers:renderManagerAssign,people:renderPeople,access:renderAccess,gas:renderGas};
+  if(renders[page]) renders[page]();
+}
+
+// TOAST
+let _tt;
+function toast(msg, ok=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className='toast show'+(ok?' ok':'');
+  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),2600);
+}
+
+// ── DEPTS ──
+function renderDepts() {
+  const c = document.getElementById('dept-blocks'); c.innerHTML='';
+  S.deptOrder.forEach(dept => {
+    const roles = S.deptRoles[dept]||[];
+    const d = document.createElement('div'); d.className='dept-block';
+    d.innerHTML = `
+      <div class="dept-hd" onclick="toggleDept(this)">
+        <div class="dept-hd-left">
+          <span class="dept-hd-name">${esc(dept)}</span>
+          <span class="dept-hd-count">${roles.length} role${roles.length!==1?'s':''}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn btn-red btn-sm" onclick="event.stopPropagation();removeDept('${esc(dept)}')">Remove Dept</button>
+          <span class="dept-hd-arrow">▶</span>
+        </div>
+      </div>
+      <div class="dept-body">
+        ${roles.length ? roles.map(r=>`
+          <div class="role-row">
+            <span class="role-name">${esc(r)}</span>
+            <button class="btn btn-red btn-sm" onclick="removeRole('${esc(dept)}','${esc(r)}')">Remove</button>
+          </div>`).join('') : '<div style="padding:8px 0;font-size:11px;color:var(--muted)">No roles yet</div>'}
+        <div class="sep"></div>
+        <div class="inp-row" style="max-width:380px">
+          <input class="inp mono" id="nr-${slug(dept)}" placeholder="New role name..." style="flex:1">
+          <button class="btn btn-blue btn-sm" onclick="addRole('${esc(dept)}')">+ Add Role</button>
+        </div>
+      </div>`;
+    c.appendChild(d);
+  });
+}
+
+function toggleDept(hd) {
+  hd.nextElementSibling.classList.toggle('open');
+  hd.querySelector('.dept-hd-arrow').classList.toggle('open');
+}
+
+function addDept() {
+  const el=document.getElementById('new-dept'), name=el.value.trim();
+  if(!name) return toast('Enter a department name');
+  if(S.deptOrder.includes(name)) return toast('Already exists');
+  S.deptOrder.push(name); S.deptRoles[name]=[]; el.value='';
+  renderDepts(); toast('Added: '+name,true);
+}
+
+function removeDept(dept) {
+  if(!confirm(`Remove "${dept}" and all its roles?`)) return;
+  (S.deptRoles[dept]||[]).forEach(r=>{delete S.rolePipeline[r];delete S.roleManagers[r]});
+  S.deptOrder=S.deptOrder.filter(d=>d!==dept); delete S.deptRoles[dept];
+  renderDepts(); toast('Removed: '+dept);
+}
+
+function addRole(dept) {
+  const el=document.getElementById('nr-'+slug(dept)), name=el.value.trim();
+  if(!name) return toast('Enter a role name');
+  if(Object.values(S.deptRoles).flat().includes(name)) return toast('Role already exists');
+  if(!S.deptRoles[dept]) S.deptRoles[dept]=[];
+  S.deptRoles[dept].push(name);
+  S.rolePipeline[name]=['Screening','Aptitude','Manager Round','Kaveri Round','Vijay Round'];
+  S.roleManagers[name]=[];
+  el.value=''; renderDepts(); toast('Added: '+name,true);
+}
+
+function removeRole(dept, role) {
+  if(!confirm(`Remove role "${role}"?`)) return;
+  S.deptRoles[dept]=(S.deptRoles[dept]||[]).filter(r=>r!==role);
+  delete S.rolePipeline[role]; delete S.roleManagers[role];
+  renderDepts(); toast('Removed: '+role);
+}
+
+// ── PIPELINES ──
+function renderPipelines() {
+  const c=document.getElementById('pipeline-blocks'); c.innerHTML='';
+  S.deptOrder.forEach(dept => {
+    const roles=S.deptRoles[dept]||[];
+    if(!roles.length) return;
+    const card=document.createElement('div'); card.className='card';
+    card.innerHTML=`
+      <div class="card-hd"><span class="card-title">${esc(dept)}</span></div>
+      <div class="card-body" style="padding:0">
+        ${roles.map(role=>{
+          const stages=S.rolePipeline[role]||['Screening'];
+          return `
+            <div style="padding:10px 16px;border-bottom:1px solid var(--border)">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+                <div>
+                  <div style="font-size:11px;font-weight:600;color:var(--muted);font-family:var(--mono);margin-bottom:6px">${esc(role)}</div>
+                  <div class="pipeline-row">${stages.map((s,i)=>`${i>0?'<span class="p-arrow">→</span>':''}<span class="pchip ${STAGE_CLS[s]||'pchip-manager'}">${esc(s)}</span>`).join('')}</div>
+                </div>
+                <button class="btn btn-ghost btn-sm" style="flex-shrink:0" onclick="editPipeline('${slug(role)}',this)">Edit</button>
+              </div>
+              <div class="pipeline-editor hidden" id="pe-${slug(role)}">
+                <div style="font-size:10px;color:var(--muted);margin-bottom:8px">Toggle stages (Screening always included):</div>
+                <div class="stage-grid">
+                  ${ALL_STAGES.filter(s=>s!=='Screening').map(s=>`
+                    <div class="stage-chk ${stages.includes(s)?'on':''}" onclick="toggleStage('${esc(role)}','${esc(s)}',this)">${esc(s)}</div>`).join('')}
+                </div>
+                <div id="po-${slug(role)}" style="font-size:10px;color:var(--muted);margin-top:6px">Order: <strong style="color:var(--text)">${stages.join(' → ')}</strong></div>
+              </div>
+            </div>`;
+        }).join('')}
+      </div>`;
+    c.appendChild(card);
+  });
+}
+
+function editPipeline(id, btn) {
+  const el=document.getElementById('pe-'+id);
+  const open=!el.classList.contains('hidden');
+  el.classList.toggle('hidden',open); btn.textContent=open?'Edit':'Done';
+}
+
+function toggleStage(role, stage, el) {
+  const cur=S.rolePipeline[role]||['Screening'];
+  if(el.classList.contains('on')) {
+    if(cur.length<=2) return toast('Need at least 2 stages');
+    S.rolePipeline[role]=cur.filter(s=>s!==stage); el.classList.remove('on');
+  } else {
+    S.rolePipeline[role]=ALL_STAGES.filter(s=>s==='Screening'||cur.includes(s)||s===stage);
+    el.classList.add('on');
+  }
+  const po=document.getElementById('po-'+slug(role));
+  if(po) po.querySelector('strong').textContent=S.rolePipeline[role].join(' → ');
+}
+
+// ── MANAGER ASSIGNMENTS ──
+function renderManagerAssign() {
+  const c=document.getElementById('manager-assign-list');
+  const allRoles=S.deptOrder.flatMap(d=>S.deptRoles[d]||[]);
+  const allMgrs=Object.keys(S.managerNameEmail);
+  c.innerHTML=allRoles.map(role=>{
+    const assigned=S.roleManagers[role]||[];
+    return `
+      <div class="ma-row">
+        <div class="ma-role">${esc(role)}</div>
+        <div style="flex:1">
+          <div class="tags" style="margin-bottom:6px">
+            ${assigned.map(m=>`<span class="tag">${esc(m)}<button class="tag-x" onclick="removeMgrFromRole('${esc(role)}','${esc(m)}')">×</button></span>`).join('')||'<span style="font-size:11px;color:var(--muted)">None assigned</span>'}
+          </div>
+          <select class="inp" style="max-width:200px;height:30px;font-size:11px" onchange="addMgrToRole('${esc(role)}',this)">
+            <option value="">+ Add manager...</option>
+            ${allMgrs.filter(m=>!assigned.includes(m)).map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('')}
+          </select>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function addMgrToRole(role, sel) {
+  const m=sel.value; if(!m) return;
+  if(!S.roleManagers[role]) S.roleManagers[role]=[];
+  if(!S.roleManagers[role].includes(m)) S.roleManagers[role].push(m);
+  sel.value=''; renderManagerAssign();
+}
+
+function removeMgrFromRole(role, mgr) {
+  S.roleManagers[role]=(S.roleManagers[role]||[]).filter(m=>m!==mgr);
+  renderManagerAssign();
+}
+
+// ── PEOPLE ──
+function renderPeople() { renderPeopleList(); renderMgrEmailList(); renderRecruiters(); }
+
+function renderPeopleList() {
+  document.getElementById('people-list').innerHTML = S.knownPeople.map((p,i)=>`
+    <div class="person-row">
+      <input class="inp mono" value="${esc(p.name)}" onchange="S.knownPeople[${i}].name=this.value" style="height:30px">
+      <input class="inp mono" value="${esc(p.email)}" onchange="S.knownPeople[${i}].email=this.value" style="height:30px">
+      <button class="btn btn-red btn-sm" onclick="removePerson(${i})">Remove</button>
+    </div>`).join('')||'<div class="empty">No people added</div>';
+}
+
+function addPerson() { S.knownPeople.push({name:'',email:''}); renderPeopleList(); }
+function removePerson(i) { S.knownPeople.splice(i,1); renderPeopleList(); }
+
+function renderMgrEmailList() {
+  document.getElementById('mgr-email-list').innerHTML = Object.entries(S.managerNameEmail).map(([name,email])=>`
+    <div class="mgr-row">
+      <input class="inp mono" value="${esc(name)}" onchange="updateMgrKey('${esc(name)}',this.value)" style="height:30px">
+      <input class="inp mono" value="${esc(email)}" onchange="S.managerNameEmail['${esc(name)}']=this.value" style="height:30px">
+      <button class="btn btn-red btn-sm" onclick="removeMgrEmail('${esc(name)}')">Remove</button>
+    </div>`).join('')||'<div class="empty">No managers</div>';
+}
+
+function updateMgrKey(oldKey, newKey) {
+  const t=newKey.trim(); if(!t||t===oldKey) return;
+  const val=S.managerNameEmail[oldKey]; delete S.managerNameEmail[oldKey]; S.managerNameEmail[t]=val;
+  Object.keys(S.roleManagers).forEach(r=>{ S.roleManagers[r]=S.roleManagers[r].map(m=>m===oldKey?t:m); });
+}
+
+function addMgrEmail() { S.managerNameEmail['NewManager']=''; renderMgrEmailList(); }
+function removeMgrEmail(n) { delete S.managerNameEmail[n]; renderMgrEmailList(); }
+
+function renderRecruiters() {
+  document.getElementById('recruiter-tags').innerHTML = S.recruiters.map(r=>
+    `<span class="tag">${esc(r)}<button class="tag-x" onclick="removeRecruiter('${esc(r)}')">×</button></span>`
+  ).join('');
+}
+
+function addRecruiter() {
+  const el=document.getElementById('new-recruiter'), n=el.value.trim();
+  if(!n) return toast('Enter a name');
+  if(S.recruiters.includes(n)) return toast('Already in list');
+  S.recruiters.push(n); el.value=''; renderRecruiters(); toast('Added: '+n,true);
+}
+
+function removeRecruiter(n) { S.recruiters=S.recruiters.filter(r=>r!==n); renderRecruiters(); }
+
+// ── ACCESS ──
+function renderAccess() {
+  const tbody=document.getElementById('access-tbody');
+  const rows=[];
+  Object.entries(S.access).forEach(([role,emails])=>emails.forEach(email=>rows.push({role,email})));
+  tbody.innerHTML=rows.map(({role,email})=>`
+    <tr>
+      <td><span style="font-family:var(--mono);font-size:11px">${esc(email)}</span></td>
+      <td><span class="rpill rp-${role==='admins'?'admin':role==='recruiters'?'recruiter':role}">${role==='admins'?'admin':role==='recruiters'?'recruiter':role}</span></td>
+      <td style="color:var(--muted);font-size:11px">${ROLE_PERMS[role]||''}</td>
+      <td><button class="btn btn-red btn-sm" onclick="removeAccess('${esc(role)}','${esc(email)}')">Remove</button></td>
+    </tr>`).join('')||'<tr><td colspan="4" class="empty">No access configured</td></tr>';
+}
+
+function addAccess() {
+  const email=document.getElementById('new-acc-email').value.trim();
+  const role=document.getElementById('new-acc-role').value;
+  if(!email||!email.includes('@')) return toast('Enter a valid email');
+  if(!S.access[role]) S.access[role]=[];
+  if(S.access[role].includes(email)) return toast('Already has access');
+  S.access[role].push(email);
+  if(role==='admins'&&!S.adminEmails.includes(email)) S.adminEmails.push(email);
+  document.getElementById('new-acc-email').value=''; renderAccess(); toast('Access granted',true);
+}
+
+function removeAccess(role, email) {
+  S.access[role]=(S.access[role]||[]).filter(e=>e!==email);
+  if(role==='admins') S.adminEmails=S.adminEmails.filter(e=>e!==email);
+  renderAccess(); toast('Removed: '+email);
+}
+
+// ── GAS ──
+function renderGas() {
+  document.getElementById('gas-renjith').value   = S.gas.renjith;
+  document.getElementById('gas-kaveri').value    = S.gas.kaveri;
+  document.getElementById('gas-vijay').value     = S.gas.vijay;
+  document.getElementById('gas-portal-url').value= S.gas.portalUrl;
+  document.getElementById('threshold-tbody').innerHTML = Object.entries(S.gas.thresholds).map(([status,days])=>`
+    <tr>
+      <td>${esc(status)}</td>
+      <td><input class="tinp" type="number" min="1" max="14" value="${days}" onchange="S.gas.thresholds['${esc(status)}']=parseInt(this.value)||1"> days</td>
+    </tr>`).join('');
+  ['gas-renjith','gas-kaveri','gas-vijay'].forEach(id=>{
+    document.getElementById(id).oninput=function(){S.gas[id.replace('gas-','')]=this.value};
+  });
+  document.getElementById('gas-portal-url').oninput=function(){S.gas.portalUrl=this.value};
+}
+
+// ── GENERATE ──
+function generateAll() {
+  document.getElementById('out-config').value     = genConfig();
+  document.getElementById('out-feedback').value   = genFeedback();
+  document.getElementById('out-admin-fn').value   = genAdminFn();
+  document.getElementById('out-gas-tracker').value= genGasTracker();
+  document.getElementById('out-gas-email').value  = genGasEmail();
+  document.getElementById('gen-out').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('gen-out').scrollIntoView({behavior:'smooth'}),100);
+  toast('Generated! Copy each block and deploy.',true);
+}
+
+function genConfig() {
+  const d=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  return `// ============================================================
+// PEEPAL HIRING PORTAL — config.js
+// Generated by Admin Panel on ${d}
+// Edit via /admin → Generate Code → paste here → git push
+// ============================================================
+
+window.PORTAL_CONFIG = {
+
+  DEPT_ORDER: ${JSON.stringify(S.deptOrder)},
+
+  DEPT_ROLES: ${fmtObj(S.deptRoles)},
+
+  ROLE_PIPELINE: ${fmtObj(S.rolePipeline)},
+
+  ROLE_MANAGERS: ${fmtObj(S.roleManagers)},
+
+  RECRUITERS: ${JSON.stringify(S.recruiters)},
+
+  ACCESS: {
+    admins:     ${JSON.stringify(S.access.admins||[])},
+    recruiters: ${JSON.stringify(S.access.recruiters||[])},
+    managers:   ${JSON.stringify(S.access.managers||[])},
+    kaveri:     ${JSON.stringify(S.access.kaveri||[])},
+    vijay:      ${JSON.stringify(S.access.vijay||[])},
+  },
+
+  MANAGER_NAME_EMAIL: ${fmtObj(S.managerNameEmail)},
+
+  KNOWN_PEOPLE: ${JSON.stringify(S.knownPeople,null,4)},
+
+  GAS: {
+    RENJITH:     '${S.gas.renjith}',
+    KAVERI:      '${S.gas.kaveri}',
+    VIJAY:       '${S.gas.vijay}',
+    PORTAL_URL:  '${S.gas.portalUrl}',
+    STATUS_THRESHOLD: ${fmtObj(S.gas.thresholds)},
+    MANAGER_EMAILS:   ${fmtObj(S.gas.managerEmails)},
+    RECRUITER_EMAILS: ${fmtObj(S.gas.recruiterEmails)},
+  },
+
+  ADMIN_EMAILS: ${JSON.stringify(S.adminEmails)},
+};`;
+}
+
+function genFeedback() {
+  return `// ── Paste into netlify/functions/feedback.js
+// Replace the ACCESS constant and MANAGER_NAME_EMAIL constant (keep everything else) ──
+
+const ACCESS = {
+  admins:     ${JSON.stringify(S.access.admins||[])},
+  recruiters: ${JSON.stringify(S.access.recruiters||[])},
+  managers:   ${JSON.stringify(S.access.managers||[])},
+  kaveri:     ${JSON.stringify(S.access.kaveri||[])},
+  vijay:      ${JSON.stringify(S.access.vijay||[])},
+};
+
+const MANAGER_NAME_EMAIL = ${fmtObj(S.managerNameEmail)};`;
+}
+
+function genAdminFn() {
+  return `// ── Paste into netlify/functions/admin-page.js
+// Replace the ADMIN_EMAILS array only ──
+
+const ADMIN_EMAILS = ${JSON.stringify(S.adminEmails,null,2)};`;
+}
+
+function genGasTracker() {
+  return `// ── Paste into HiringTracker_v1.gs
+// Replace these 4 constant declarations (find each one and replace the whole const block) ──
+
+const DEPT_ROLES = ${fmtObj(S.deptRoles)};
+
+const ROLE_MANAGERS = ${fmtObj(S.roleManagers)};
+
+const ROLE_PIPELINE = ${fmtObj(S.rolePipeline)};
+
+const RECRUITERS = ${JSON.stringify(S.recruiters)};`;
+}
+
+function genGasEmail() {
+  return `// ── Paste into EmailAutomations.gs
+// Replace EA object, STATUS_THRESHOLD, MANAGER_EMAILS, RECRUITER_EMAILS ──
+
+const EA = {
+  SHEET:      'Master Tracker',
+  RENJITH:    '${S.gas.renjith}',
+  KAVERI:     '${S.gas.kaveri}',
+  VIJAY:      '${S.gas.vijay}',
+  PORTAL_URL: '${S.gas.portalUrl}',
+  COL: {
+    NAME: 2, DEPARTMENT: 15, ROLE: 16, RECRUITER: 17, MANAGER: 18, STATUS: 19,
+  },
+  DATA_START: 4,
+  TOTAL_COLS: 28,
+};
+
+const STATUS_THRESHOLD = ${fmtObj(S.gas.thresholds)};
+
+const MANAGER_EMAILS = ${fmtObj(S.gas.managerEmails)};
+
+const RECRUITER_EMAILS = ${fmtObj(S.gas.recruiterEmails)};`;
+}
+
+function copyOut(id, btn) {
+  navigator.clipboard.writeText(document.getElementById(id).value).then(()=>{
+    btn.textContent='✓ Copied'; btn.classList.add('ok');
+    setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('ok')},2000);
+  });
+}
+
+// ── HELPERS ──
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function slug(s){return String(s).toLowerCase().replace(/[^a-z0-9]/g,'_')}
+function fmtObj(obj){
+  const lines=Object.entries(obj).map(([k,v])=>`  '${k}': ${JSON.stringify(v)},`);
+  return '{\n'+lines.join('\n')+'\n}';
+}
+
+// INIT
+renderDepts();
+</script>
+</body>
+</html>

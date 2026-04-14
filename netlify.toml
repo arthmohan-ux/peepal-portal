@@ -3,7 +3,7 @@
   functions = "netlify/functions"
 
 [functions]
-  included_files = ["public/dashboard.html", "public/analytics.html"]
+  included_files = ["public/dashboard.html", "public/analytics.html", "public/admin.html"]
 
 [build.environment]
   SECRETS_SCAN_OMIT_PATHS = ".env.example,src/candidate.js,src/auth.js,netlify/functions/candidates.js,netlify/functions/feedback.js"
@@ -70,4 +70,9 @@
 [[redirects]]
   from = "/analytics.html"
   to = "/.netlify/functions/analytics-page"
+  status = 200
+
+[[redirects]]
+  from = "/admin"
+  to = "/.netlify/functions/admin-page"
   status = 200
