@@ -47,7 +47,7 @@ exports.handler = async (event) => {
     };
   }
 
-  const htmlPath = path.join(process.cwd(), 'public', 'admin.html');
+  const htmlPath = path.join(__dirname, 'admin.html');
   const html     = fs.readFileSync(htmlPath, 'utf8');
 
   return {
