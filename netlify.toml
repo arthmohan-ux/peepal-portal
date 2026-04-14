@@ -76,3 +76,8 @@
   from = "/admin"
   to = "/.netlify/functions/admin-page"
   status = 200
+
+[[redirects]]
+  from = "/admin.html"
+  to = "/.netlify/functions/admin-page"
+  status = 200
