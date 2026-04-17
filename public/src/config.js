@@ -82,7 +82,7 @@ window.PORTAL_CONFIG = {
   RECRUITERS: ['Ramya', 'Krishna', 'Aditi', 'Renjith'],
 
   ACCESS: {
-    admins:     ['arth.mohan@peepalconsulting.com'],
+    admins:     ['arth.mohan@peepalconsulting.com', 'anish.k@peepalconsulting.com'],
     recruiters: ['ramya.h@peepalconsulting.com', 'krishna.kumar@peepalconsulting.com', 'aditi.kaul@peepalconsulting.com', 'renjith.k@peepalconsulting.com'],
     managers:   ['ravi.kant.sharma@peepalconsulting.com', 'ambika.s@peepalconsulting.com', 'shiwala.dubey@peepalconsulting.com', 'parv.u@peepalconsulting.com', 'ramakrishna.d@peepalconsulting.com', 'rohan.p@peepalconsulting.com', 'rupa.moogi@peepalconsulting.com'],
     kaveri:     ['kaveri.karnam@peepalconsulting.com'],
@@ -112,6 +112,7 @@ window.PORTAL_CONFIG = {
     { name: 'Anil',        email: 'anil.kumar.s@peepalconsulting.com' },
     { name: 'Vijay',       email: 'vijay@peepalconsulting.com' },
     { name: 'Arth',        email: 'arth.mohan@peepalconsulting.com' },
+    { name: 'Anish',       email: 'anish.k@peepalconsulting.com' },
     { name: 'Rohan',       email: 'rohan.p@peepalconsulting.com' },
     { name: 'Shiwala',     email: 'shiwala.dubey@peepalconsulting.com' },
     { name: 'Ramakrishna', email: 'ramakrishna.d@peepalconsulting.com' },
@@ -158,6 +159,7 @@ window.PORTAL_CONFIG = {
 
   ADMIN_EMAILS: [
     'arth.mohan@peepalconsulting.com',
+    'anish.k@peepalconsulting.com',
     'renjith.k@peepalconsulting.com',
     'kaveri.karnam@peepalconsulting.com',
   ],

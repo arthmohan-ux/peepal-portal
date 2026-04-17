@@ -10,6 +10,7 @@ const IS_DEV     = process.env.NEXTAUTH_URL?.includes('localhost');
 
 const ADMIN_EMAILS = [
   'arth.mohan@peepalconsulting.com',
+  'anish.k@peepalconsulting.com',
   'renjith.k@peepalconsulting.com',
   'kaveri.karnam@peepalconsulting.com',
 ];

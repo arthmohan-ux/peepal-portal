@@ -11,7 +11,7 @@ const PORTAL_TIME_ZONE = 'Asia/Kolkata';
 
 const IS_DEV = process.env.NEXTAUTH_URL?.includes('localhost');
 const ACCESS = {
-  admins: ['arth.mohan@peepalconsulting.com'],
+  admins: ['arth.mohan@peepalconsulting.com', 'anish.k@peepalconsulting.com'],
   recruiters: ['ramya.h@peepalconsulting.com', 'krishna.kumar@peepalconsulting.com', 'aditi.kaul@peepalconsulting.com', 'renjith.k@peepalconsulting.com'],
   managers: ['ravi.kant.sharma@peepalconsulting.com', 'ambika.s@peepalconsulting.com', 'shiwala.dubey@peepalconsulting.com', 'parv.u@peepalconsulting.com', 'ramakrishna.d@peepalconsulting.com', 'rohan.p@peepalconsulting.com', 'rupa.moogi@peepalconsulting.com'],
   kaveri: ['kaveri.karnam@peepalconsulting.com'],
