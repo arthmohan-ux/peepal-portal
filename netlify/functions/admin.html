@@ -30,6 +30,9 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .nav-user{font-size:11px;color:var(--muted);font-family:var(--mono)}
 .nav-link{font-size:11px;font-weight:600;padding:5px 12px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer;text-decoration:none;transition:all .15s}
 .nav-link:hover{color:var(--text);border-color:var(--subtle)}
+#save-indicator{font-size:10px;font-weight:700;font-family:var(--mono);padding:4px 10px;border-radius:4px;background:var(--surface2);border:1px solid var(--border)}
+.btn-clear-state{font-size:10px;font-weight:600;padding:4px 10px;border-radius:5px;background:var(--yellow-dim);border:1px solid rgba(210,153,34,.3);color:var(--yellow);cursor:pointer;font-family:var(--mono)}
+.btn-clear-state:hover{background:#5c4200}
 .layout{display:flex;min-height:calc(100vh - 52px)}
 .sidebar{width:200px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:16px 0;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto}
 .sidebar-group{padding:0 8px;margin-bottom:20px}
@@ -159,6 +162,8 @@ code{background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:va
     <span class="admin-pill">admin</span>
   </div>
   <div class="nav-right">
+    <span id="save-indicator" style="font-size:10px;font-weight:700;font-family:var(--mono);padding:4px 10px;border-radius:4px;background:var(--surface2);border:1px solid var(--border);color:var(--muted)">No changes</span>
+    <button class="btn-clear-state" onclick="clearSavedState()">↺ Revert</button>
     <span class="nav-user" id="user-name"></span>
     <a href="/dashboard" class="nav-link">← Dashboard</a>
     <button onclick="logout()" class="nav-link">Sign out</button>
@@ -193,7 +198,7 @@ code{background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:va
 <!-- DEPTS & ROLES -->
 <div class="page active" id="page-depts">
   <div class="page-hd"><h1>Departments & Roles</h1><p>Add, rename, or remove departments and their roles. Role order controls dropdown ordering.</p></div>
-  <div class="info">Changes are <strong>in-memory only</strong> until you generate + deploy. Nothing on the live portal changes until you push.</div>
+  <div class="info">Changes are <strong>auto-saved to your browser</strong>. Nothing on the live portal changes until you Generate Code and deploy.</div>
   <div class="card">
     <div class="card-hd"><span class="card-title">Add Department</span></div>
     <div class="card-body">
@@ -313,7 +318,7 @@ code{background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:va
 <div class="page" id="page-generate">
   <div class="page-hd"><h1>Generate Code</h1><p>Produces copy-paste ready code blocks from your current config. Paste each into the right file, then git push.</p></div>
   <div class="gen-bar">
-    <div class="gen-bar-text"><h3>Ready to generate?</h3><p>Click to produce updated code blocks from your current in-memory config.</p></div>
+    <div class="gen-bar-text"><h3>Ready to generate?</h3><p>Click to produce updated code blocks from your current config.</p></div>
     <button class="gen-btn" onclick="generateAll()">⚙ Generate All</button>
   </div>
   <div id="gen-out" class="hidden">
@@ -328,6 +333,10 @@ code{background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:va
     <div class="code-block">
       <div class="code-hd"><span class="code-file">📄 <span>netlify/functions/admin-page.js</span> — replace ADMIN_EMAILS array only</span><button class="copy-btn" onclick="copyOut('out-admin-fn',this)">Copy</button></div>
       <textarea class="code-ta" id="out-admin-fn" rows="5" readonly></textarea>
+    </div>
+    <div class="code-block">
+      <div class="code-hd"><span class="code-file">📄 <span>netlify/lib/access.js</span> — replace ACCESS + MANAGER_NAME_EMAIL only</span><button class="copy-btn" onclick="copyOut('out-access',this)">Copy</button></div>
+      <textarea class="code-ta" id="out-access" rows="14" readonly></textarea>
     </div>
     <div class="code-block">
       <div class="code-hd"><span class="code-file">📄 <span>HiringTracker_v1.gs</span> — replace DEPT_ROLES, ROLE_PIPELINE, ROLE_MANAGERS, RECRUITERS</span><button class="copy-btn" onclick="copyOut('out-gas-tracker',this)">Copy</button></div>
@@ -346,9 +355,9 @@ code{background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:va
   <div class="card">
     <div class="card-hd"><span class="card-title">Portal (Netlify) — 4 steps</span></div>
     <div class="card-body" style="padding:4px 0">
-      <div class="step"><div class="step-num">1</div><div class="step-body"><h4>Make your changes here</h4><p>Edit roles, pipelines, access, people in this admin panel. Nothing is saved yet — it's all in memory.</p></div></div>
+      <div class="step"><div class="step-num">1</div><div class="step-body"><h4>Make your changes here</h4><p>Edit roles, pipelines, access, people. Changes auto-save to your browser — you can close and come back.</p></div></div>
       <div class="step"><div class="step-num">2</div><div class="step-body"><h4>Go to Generate Code</h4><p>Click "Generate All" — you'll get a code block for each file that needs updating.</p></div></div>
-      <div class="step"><div class="step-num">3</div><div class="step-body"><h4>Paste into your repo</h4><p>Each block tells you exactly which file and what to replace. For <code>config.js</code>, replace the whole file. For <code>feedback.js</code> and <code>admin-page.js</code>, replace only the constant shown.</p></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-body"><h4>Paste into your repo</h4><p>Each block tells you exactly which file and what to replace. For <code>config.js</code>, replace the whole file. For <code>feedback.js</code>, <code>admin-page.js</code>, and <code>access.js</code>, replace only the constants shown.</p></div></div>
       <div class="step"><div class="step-num">4</div><div class="step-body"><h4>Push to git</h4><p><code>git add . && git commit -m "config: update" && git push</code> — Netlify auto-deploys in ~30 seconds.</p></div></div>
     </div>
   </div>
@@ -369,26 +378,80 @@ code{background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:va
 <script src="/src/config.js"></script>
 <script>
 const C = window.PORTAL_CONFIG;
-const S = {
-  deptOrder:        [...C.DEPT_ORDER],
-  deptRoles:        JSON.parse(JSON.stringify(C.DEPT_ROLES)),
-  rolePipeline:     JSON.parse(JSON.stringify(C.ROLE_PIPELINE)),
-  roleManagers:     JSON.parse(JSON.stringify(C.ROLE_MANAGERS)),
-  recruiters:       [...C.RECRUITERS],
-  access:           JSON.parse(JSON.stringify(C.ACCESS)),
-  managerNameEmail: JSON.parse(JSON.stringify(C.MANAGER_NAME_EMAIL)),
-  knownPeople:      JSON.parse(JSON.stringify(C.KNOWN_PEOPLE)),
-  adminEmails:      [...C.ADMIN_EMAILS],
-  gas: {
-    renjith:         C.GAS.RENJITH,
-    kaveri:          C.GAS.KAVERI,
-    vijay:           C.GAS.VIJAY,
-    portalUrl:       C.GAS.PORTAL_URL,
-    thresholds:      JSON.parse(JSON.stringify(C.GAS.STATUS_THRESHOLD)),
-    managerEmails:   JSON.parse(JSON.stringify(C.GAS.MANAGER_EMAILS)),
-    recruiterEmails: JSON.parse(JSON.stringify(C.GAS.RECRUITER_EMAILS)),
-  },
-};
+
+// ── LOCALSTORAGE PERSISTENCE ──
+const LS_KEY = 'peepal_admin_state_v1';
+
+function buildDefaultState() {
+  return {
+    deptOrder:        [...C.DEPT_ORDER],
+    deptRoles:        JSON.parse(JSON.stringify(C.DEPT_ROLES)),
+    rolePipeline:     JSON.parse(JSON.stringify(C.ROLE_PIPELINE)),
+    roleManagers:     JSON.parse(JSON.stringify(C.ROLE_MANAGERS)),
+    recruiters:       [...C.RECRUITERS],
+    access:           JSON.parse(JSON.stringify(C.ACCESS)),
+    managerNameEmail: JSON.parse(JSON.stringify(C.MANAGER_NAME_EMAIL)),
+    knownPeople:      JSON.parse(JSON.stringify(C.KNOWN_PEOPLE)),
+    adminEmails:      [...C.ADMIN_EMAILS],
+    gas: {
+      renjith:         C.GAS.RENJITH,
+      kaveri:          C.GAS.KAVERI,
+      vijay:           C.GAS.VIJAY,
+      portalUrl:       C.GAS.PORTAL_URL,
+      thresholds:      JSON.parse(JSON.stringify(C.GAS.STATUS_THRESHOLD)),
+      managerEmails:   JSON.parse(JSON.stringify(C.GAS.MANAGER_EMAILS)),
+      recruiterEmails: JSON.parse(JSON.stringify(C.GAS.RECRUITER_EMAILS)),
+    },
+  };
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return buildDefaultState();
+    const saved = JSON.parse(raw);
+    // Make sure gas sub-object exists in case of old saved state
+    if (!saved.gas) saved.gas = buildDefaultState().gas;
+    return saved;
+  } catch(e) {
+    console.warn('Could not load saved state, using defaults:', e);
+    return buildDefaultState();
+  }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(S));
+    updateSaveIndicator(true);
+  } catch(e) { console.warn('Could not save state:', e); }
+}
+
+function updateSaveIndicator(saved) {
+  const el = document.getElementById('save-indicator');
+  if (!el) return;
+  if (saved) {
+    el.textContent = '✓ Saved to browser';
+    el.style.color = 'var(--green)';
+    el.style.borderColor = 'rgba(63,185,80,.3)';
+  } else {
+    el.textContent = '● Unsaved changes';
+    el.style.color = 'var(--yellow)';
+    el.style.borderColor = 'rgba(210,153,34,.3)';
+  }
+}
+
+function clearSavedState() {
+  if (!confirm('Revert all changes back to the live config?\n\nThis cannot be undone.')) return;
+  localStorage.removeItem(LS_KEY);
+  location.reload();
+}
+
+// Load state (from localStorage if available, else from config.js)
+const S = loadState();
+
+// Show indicator on load
+const hasSavedState = !!localStorage.getItem(LS_KEY);
+updateSaveIndicator(hasSavedState);
 
 const ALL_STAGES = ['Screening','Aptitude','Assessment','AI Interview','Manager Round','HR Round','Kaveri Round','Vijay Round'];
 const STAGE_CLS = {'Screening':'pchip-screening','Aptitude':'pchip-aptitude','Assessment':'pchip-assessment','AI Interview':'pchip-ai','Manager Round':'pchip-manager','HR Round':'pchip-hr','Kaveri Round':'pchip-kaveri','Vijay Round':'pchip-vijay'};
@@ -459,14 +522,14 @@ function addDept() {
   if(!name) return toast('Enter a department name');
   if(S.deptOrder.includes(name)) return toast('Already exists');
   S.deptOrder.push(name); S.deptRoles[name]=[]; el.value='';
-  renderDepts(); toast('Added: '+name,true);
+  saveState(); renderDepts(); toast('Added: '+name,true);
 }
 
 function removeDept(dept) {
   if(!confirm(`Remove "${dept}" and all its roles?`)) return;
   (S.deptRoles[dept]||[]).forEach(r=>{delete S.rolePipeline[r];delete S.roleManagers[r]});
   S.deptOrder=S.deptOrder.filter(d=>d!==dept); delete S.deptRoles[dept];
-  renderDepts(); toast('Removed: '+dept);
+  saveState(); renderDepts(); toast('Removed: '+dept);
 }
 
 function addRole(dept) {
@@ -477,14 +540,14 @@ function addRole(dept) {
   S.deptRoles[dept].push(name);
   S.rolePipeline[name]=['Screening','Aptitude','Manager Round','Kaveri Round','Vijay Round'];
   S.roleManagers[name]=[];
-  el.value=''; renderDepts(); toast('Added: '+name,true);
+  el.value=''; saveState(); renderDepts(); toast('Added: '+name,true);
 }
 
 function removeRole(dept, role) {
   if(!confirm(`Remove role "${role}"?`)) return;
   S.deptRoles[dept]=(S.deptRoles[dept]||[]).filter(r=>r!==role);
   delete S.rolePipeline[role]; delete S.roleManagers[role];
-  renderDepts(); toast('Removed: '+role);
+  saveState(); renderDepts(); toast('Removed: '+role);
 }
 
 // ── PIPELINES ──
@@ -540,6 +603,7 @@ function toggleStage(role, stage, el) {
   }
   const po=document.getElementById('po-'+slug(role));
   if(po) po.querySelector('strong').textContent=S.rolePipeline[role].join(' → ');
+  saveState();
 }
 
 // ── MANAGER ASSIGNMENTS ──
@@ -569,12 +633,12 @@ function addMgrToRole(role, sel) {
   const m=sel.value; if(!m) return;
   if(!S.roleManagers[role]) S.roleManagers[role]=[];
   if(!S.roleManagers[role].includes(m)) S.roleManagers[role].push(m);
-  sel.value=''; renderManagerAssign();
+  sel.value=''; saveState(); renderManagerAssign();
 }
 
 function removeMgrFromRole(role, mgr) {
   S.roleManagers[role]=(S.roleManagers[role]||[]).filter(m=>m!==mgr);
-  renderManagerAssign();
+  saveState(); renderManagerAssign();
 }
 
 // ── PEOPLE ──
@@ -583,20 +647,20 @@ function renderPeople() { renderPeopleList(); renderMgrEmailList(); renderRecrui
 function renderPeopleList() {
   document.getElementById('people-list').innerHTML = S.knownPeople.map((p,i)=>`
     <div class="person-row">
-      <input class="inp mono" value="${esc(p.name)}" onchange="S.knownPeople[${i}].name=this.value" style="height:30px">
-      <input class="inp mono" value="${esc(p.email)}" onchange="S.knownPeople[${i}].email=this.value" style="height:30px">
+      <input class="inp mono" value="${esc(p.name)}" onchange="S.knownPeople[${i}].name=this.value;saveState()" style="height:30px">
+      <input class="inp mono" value="${esc(p.email)}" onchange="S.knownPeople[${i}].email=this.value;saveState()" style="height:30px">
       <button class="btn btn-red btn-sm" onclick="removePerson(${i})">Remove</button>
     </div>`).join('')||'<div class="empty">No people added</div>';
 }
 
-function addPerson() { S.knownPeople.push({name:'',email:''}); renderPeopleList(); }
-function removePerson(i) { S.knownPeople.splice(i,1); renderPeopleList(); }
+function addPerson() { S.knownPeople.push({name:'',email:''}); saveState(); renderPeopleList(); }
+function removePerson(i) { S.knownPeople.splice(i,1); saveState(); renderPeopleList(); }
 
 function renderMgrEmailList() {
   document.getElementById('mgr-email-list').innerHTML = Object.entries(S.managerNameEmail).map(([name,email])=>`
     <div class="mgr-row">
       <input class="inp mono" value="${esc(name)}" onchange="updateMgrKey('${esc(name)}',this.value)" style="height:30px">
-      <input class="inp mono" value="${esc(email)}" onchange="S.managerNameEmail['${esc(name)}']=this.value" style="height:30px">
+      <input class="inp mono" value="${esc(email)}" onchange="S.managerNameEmail['${esc(name)}']=this.value;saveState()" style="height:30px">
       <button class="btn btn-red btn-sm" onclick="removeMgrEmail('${esc(name)}')">Remove</button>
     </div>`).join('')||'<div class="empty">No managers</div>';
 }
@@ -605,10 +669,11 @@ function updateMgrKey(oldKey, newKey) {
   const t=newKey.trim(); if(!t||t===oldKey) return;
   const val=S.managerNameEmail[oldKey]; delete S.managerNameEmail[oldKey]; S.managerNameEmail[t]=val;
   Object.keys(S.roleManagers).forEach(r=>{ S.roleManagers[r]=S.roleManagers[r].map(m=>m===oldKey?t:m); });
+  saveState();
 }
 
-function addMgrEmail() { S.managerNameEmail['NewManager']=''; renderMgrEmailList(); }
-function removeMgrEmail(n) { delete S.managerNameEmail[n]; renderMgrEmailList(); }
+function addMgrEmail() { S.managerNameEmail['NewManager']=''; saveState(); renderMgrEmailList(); }
+function removeMgrEmail(n) { delete S.managerNameEmail[n]; saveState(); renderMgrEmailList(); }
 
 function renderRecruiters() {
   document.getElementById('recruiter-tags').innerHTML = S.recruiters.map(r=>
@@ -620,10 +685,10 @@ function addRecruiter() {
   const el=document.getElementById('new-recruiter'), n=el.value.trim();
   if(!n) return toast('Enter a name');
   if(S.recruiters.includes(n)) return toast('Already in list');
-  S.recruiters.push(n); el.value=''; renderRecruiters(); toast('Added: '+n,true);
+  S.recruiters.push(n); el.value=''; saveState(); renderRecruiters(); toast('Added: '+n,true);
 }
 
-function removeRecruiter(n) { S.recruiters=S.recruiters.filter(r=>r!==n); renderRecruiters(); }
+function removeRecruiter(n) { S.recruiters=S.recruiters.filter(r=>r!==n); saveState(); renderRecruiters(); }
 
 // ── ACCESS ──
 function renderAccess() {
@@ -647,13 +712,13 @@ function addAccess() {
   if(S.access[role].includes(email)) return toast('Already has access');
   S.access[role].push(email);
   if(role==='admins'&&!S.adminEmails.includes(email)) S.adminEmails.push(email);
-  document.getElementById('new-acc-email').value=''; renderAccess(); toast('Access granted',true);
+  document.getElementById('new-acc-email').value=''; saveState(); renderAccess(); toast('Access granted',true);
 }
 
 function removeAccess(role, email) {
   S.access[role]=(S.access[role]||[]).filter(e=>e!==email);
   if(role==='admins') S.adminEmails=S.adminEmails.filter(e=>e!==email);
-  renderAccess(); toast('Removed: '+email);
+  saveState(); renderAccess(); toast('Removed: '+email);
 }
 
 // ── GAS ──
@@ -665,12 +730,12 @@ function renderGas() {
   document.getElementById('threshold-tbody').innerHTML = Object.entries(S.gas.thresholds).map(([status,days])=>`
     <tr>
       <td>${esc(status)}</td>
-      <td><input class="tinp" type="number" min="1" max="14" value="${days}" onchange="S.gas.thresholds['${esc(status)}']=parseInt(this.value)||1"> days</td>
+      <td><input class="tinp" type="number" min="1" max="14" value="${days}" onchange="S.gas.thresholds['${esc(status)}']=parseInt(this.value)||1;saveState()"> days</td>
     </tr>`).join('');
   ['gas-renjith','gas-kaveri','gas-vijay'].forEach(id=>{
-    document.getElementById(id).oninput=function(){S.gas[id.replace('gas-','')]=this.value};
+    document.getElementById(id).oninput=function(){S.gas[id.replace('gas-','')]=this.value;saveState()};
   });
-  document.getElementById('gas-portal-url').oninput=function(){S.gas.portalUrl=this.value};
+  document.getElementById('gas-portal-url').oninput=function(){S.gas.portalUrl=this.value;saveState()};
 }
 
 // ── GENERATE ──
@@ -678,6 +743,7 @@ function generateAll() {
   document.getElementById('out-config').value     = genConfig();
   document.getElementById('out-feedback').value   = genFeedback();
   document.getElementById('out-admin-fn').value   = genAdminFn();
+  document.getElementById('out-access').value     = genAccessLib();
   document.getElementById('out-gas-tracker').value= genGasTracker();
   document.getElementById('out-gas-email').value  = genGasEmail();
   document.getElementById('gen-out').classList.remove('hidden');
@@ -733,7 +799,25 @@ window.PORTAL_CONFIG = {
 
 function genFeedback() {
   return `// ── Paste into netlify/functions/feedback.js
-// Replace the ACCESS constant and MANAGER_NAME_EMAIL constant (keep everything else) ──
+// This file now imports from access.js — no ACCESS constants needed here
+// Just verify the import line at the top still reads:
+// const { ACCESS, MANAGER_NAME_EMAIL, getUserRole } = require('../lib/access');`;
+}
+
+function genAdminFn() {
+  return `// ── Paste into netlify/functions/admin-page.js
+// This file now imports from access.js — no ADMIN_EMAILS constant needed here
+// Just verify the import line at the top still reads:
+// const { ACCESS } = require('../lib/access');
+// const ADMIN_EMAILS = ACCESS.admins;`;
+}
+
+function genAccessLib() {
+  const entries = Object.entries(S.managerNameEmail);
+  const lowerEntries = entries.map(([k,v])=>`  '${k.toLowerCase()}': '${v}',`).join('\n');
+  const displayEntries = entries.map(([k,v])=>`  '${k}': '${v}',`).join('\n');
+  return `// ── Paste into netlify/lib/access.js
+// Replace the ACCESS constant and MANAGER_NAME_EMAIL constant only ──
 
 const ACCESS = {
   admins:     ${JSON.stringify(S.access.admins||[])},
@@ -743,19 +827,17 @@ const ACCESS = {
   vijay:      ${JSON.stringify(S.access.vijay||[])},
 };
 
-const MANAGER_NAME_EMAIL = ${fmtObj(S.managerNameEmail)};`;
-}
-
-function genAdminFn() {
-  return `// ── Paste into netlify/functions/admin-page.js
-// Replace the ADMIN_EMAILS array only ──
-
-const ADMIN_EMAILS = ${JSON.stringify(S.adminEmails,null,2)};`;
+const MANAGER_NAME_EMAIL = {
+  // Display names (as stored in sheet Manager column)
+${displayEntries}
+  // Lowercase variants (for flexible lookup)
+${lowerEntries}
+};`;
 }
 
 function genGasTracker() {
   return `// ── Paste into HiringTracker_v1.gs
-// Replace these 4 constant declarations (find each one and replace the whole const block) ──
+// Replace these 4 constant declarations ──
 
 const DEPT_ROLES = ${fmtObj(S.deptRoles)};
 
