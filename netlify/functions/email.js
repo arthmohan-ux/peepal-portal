@@ -2,6 +2,7 @@
 // POST — sends candidate summary email via SendGrid
 
 const { jwtVerify } = require('jose');
+const { canViewCandidate } = require('../lib/access');
 
 const SECRET = new TextEncoder().encode(process.env.SESSION_SECRET);
 const IS_DEV = process.env.NEXTAUTH_URL?.includes('localhost');
@@ -271,6 +272,10 @@ exports.handler = async (event) => {
 
   if (!candidate || !stage || !to || to.length === 0) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing required fields' }) };
+  }
+
+  if (!canViewCandidate(session.email, candidate)) {
+    return { statusCode: 403, headers, body: JSON.stringify({ error: 'You do not have permission to email this candidate.' }) };
   }
 
   try {

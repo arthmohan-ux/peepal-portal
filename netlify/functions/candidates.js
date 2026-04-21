@@ -3,6 +3,7 @@
 
 const { jwtVerify } = require('jose');
 const { google }    = require('googleapis');
+const { filterCandidatesForUser } = require('../lib/access');
 
 const SECRET = new TextEncoder().encode(process.env.SESSION_SECRET);
 const STATUS_COL_A1 = 'S';
@@ -20,7 +21,7 @@ const COLS = {
 const IS_DEV = process.env.NEXTAUTH_URL?.includes('localhost');
 
 async function getSession(event) {
-  if (IS_DEV) return { email: 'dev@peepalconsulting.com', name: 'Dev User' };
+  if (IS_DEV) return { email: 'arth.mohan@peepalconsulting.com', name: 'Arth Mohan' };
   const cookie = event.headers.cookie || '';
   const match  = cookie.match(/peepal_session=([^;]+)/);
   if (!match) return null;
@@ -149,9 +150,10 @@ exports.handler = async (event) => {
 
     const rows = valuesResponse.data.values || [];
     const noteRows = notesResponse.data.sheets?.[0]?.data?.[0]?.rowData || [];
-    const candidates = rows
+    const allCandidates = rows
       .map((row, i) => rowToCandidate(row, i, noteRows[i]?.values?.[0]?.note || ''))
       .filter(c => c.name && c.name.length > 0);
+    const candidates = filterCandidatesForUser(session.email, allCandidates);
 
     return {
       statusCode: 200,
