@@ -1,3 +1,7 @@
+// netlify/lib/access.js
+// Single source of truth for all access control.
+// Imported by feedback.js, candidates.js, email.js, admin-page.js
+
 const ACCESS = {
   admins: ['arth.mohan@peepalconsulting.com', 'anish.k@peepalconsulting.com'],
   recruiters: [
@@ -20,23 +24,44 @@ const ACCESS = {
   vijay: ['vijay@peepalconsulting.com'],
 };
 
+// Keyed by both lowercase and display-name for flexibility.
+// The sheet stores "Ravikant", "Ambika" etc. so we support both.
 const MANAGER_NAME_EMAIL = {
-  ravikant: 'ravi.kant.sharma@peepalconsulting.com',
+  // Display names (as stored in sheet Manager column)
+  'Ravikant':    'ravi.kant.sharma@peepalconsulting.com',
+  'Ambika':      'ambika.s@peepalconsulting.com',
+  'Shiwala':     'shiwala.dubey@peepalconsulting.com',
+  'Parv':        'parv.u@peepalconsulting.com',
+  'Ramakrishna': 'ramakrishna.d@peepalconsulting.com',
+  'Rama':        'ramakrishna.d@peepalconsulting.com',
+  'Rohan':       'rohan.p@peepalconsulting.com',
+  'Rupa':        'rupa.moogi@peepalconsulting.com',
+  'Mayank':      'mayank.bajaj@peepalconsulting.com',
+  'Anil':        'anil.kumar.s@peepalconsulting.com',
+  'Kaveri':      'kaveri.karnam@peepalconsulting.com',
+  'Renjith':     'renjith.k@peepalconsulting.com',
+  // Lowercase variants
+  'ravikant':    'ravi.kant.sharma@peepalconsulting.com',
+  'ambika':      'ambika.s@peepalconsulting.com',
+  'shiwala':     'shiwala.dubey@peepalconsulting.com',
+  'parv':        'parv.u@peepalconsulting.com',
+  'ramakrishna': 'ramakrishna.d@peepalconsulting.com',
+  'rama':        'ramakrishna.d@peepalconsulting.com',
+  'rohan':       'rohan.p@peepalconsulting.com',
+  'rupa':        'rupa.moogi@peepalconsulting.com',
+  'mayank':      'mayank.bajaj@peepalconsulting.com',
+  'anil':        'anil.kumar.s@peepalconsulting.com',
+  'kaveri':      'kaveri.karnam@peepalconsulting.com',
+  'renjith':     'renjith.k@peepalconsulting.com',
+  // Full name variants
   'ravi kant sharma': 'ravi.kant.sharma@peepalconsulting.com',
-  ambika: 'ambika.s@peepalconsulting.com',
-  'ambika s': 'ambika.s@peepalconsulting.com',
-  shiwala: 'shiwala.dubey@peepalconsulting.com',
-  'shiwala dubey': 'shiwala.dubey@peepalconsulting.com',
-  parv: 'parv.u@peepalconsulting.com',
-  'parv u': 'parv.u@peepalconsulting.com',
-  ramakrishna: 'ramakrishna.d@peepalconsulting.com',
-  'ramakrishna d': 'ramakrishna.d@peepalconsulting.com',
-  rohan: 'rohan.p@peepalconsulting.com',
-  'rohan p': 'rohan.p@peepalconsulting.com',
-  rupa: 'rupa.moogi@peepalconsulting.com',
-  'rupa moogi': 'rupa.moogi@peepalconsulting.com',
-  mayank: 'mayank.bajaj@peepalconsulting.com',
-  'mayank bajaj': 'mayank.bajaj@peepalconsulting.com',
+  'ambika s':         'ambika.s@peepalconsulting.com',
+  'shiwala dubey':    'shiwala.dubey@peepalconsulting.com',
+  'parv u':           'parv.u@peepalconsulting.com',
+  'ramakrishna d':    'ramakrishna.d@peepalconsulting.com',
+  'rohan p':          'rohan.p@peepalconsulting.com',
+  'rupa moogi':       'rupa.moogi@peepalconsulting.com',
+  'mayank bajaj':     'mayank.bajaj@peepalconsulting.com',
 };
 
 function normalizeEmail(email) {
@@ -44,28 +69,26 @@ function normalizeEmail(email) {
 }
 
 function normalizeName(name) {
-  return String(name || '')
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, ' ');
+  return String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
 function getUserRole(email) {
-  const normalizedEmail = normalizeEmail(email);
-  if (!normalizedEmail) return 'viewer';
-  if (ACCESS.admins.includes(normalizedEmail)) return 'admin';
-  if (ACCESS.recruiters.includes(normalizedEmail)) return 'recruiter';
-  if (ACCESS.kaveri.includes(normalizedEmail)) return 'kaveri';
-  if (ACCESS.vijay.includes(normalizedEmail)) return 'vijay';
-  if (ACCESS.managers.includes(normalizedEmail)) return 'manager';
+  const e = normalizeEmail(email);
+  if (!e) return 'viewer';
+  if (ACCESS.admins.includes(e))     return 'admin';
+  if (ACCESS.recruiters.includes(e)) return 'recruiter';
+  if (ACCESS.kaveri.includes(e))     return 'kaveri';
+  if (ACCESS.vijay.includes(e))      return 'vijay';
+  if (ACCESS.managers.includes(e))   return 'manager';
   return 'viewer';
 }
 
 function getManagerEmail(managerName) {
-  const normalizedManager = normalizeEmail(managerName);
-  if (!normalizedManager) return null;
-  if (normalizedManager.includes('@')) return normalizedManager;
-  return MANAGER_NAME_EMAIL[normalizeName(managerName)] || null;
+  if (!managerName) return null;
+  const raw = String(managerName).trim();
+  if (raw.includes('@')) return normalizeEmail(raw);
+  // Try exact, then lowercase
+  return MANAGER_NAME_EMAIL[raw] || MANAGER_NAME_EMAIL[normalizeName(raw)] || null;
 }
 
 function isAssignedManager(email, candidate) {
@@ -80,10 +103,8 @@ function canViewCandidate(email, candidate) {
 
 function filterCandidatesForUser(email, candidates) {
   const role = getUserRole(email);
-  if (role === 'manager') {
-    return candidates.filter(candidate => isAssignedManager(email, candidate));
-  }
-  if (role === 'viewer') return [];
+  if (role === 'manager') return candidates.filter(c => isAssignedManager(email, c));
+  if (role === 'viewer')  return [];
   return candidates;
 }
 

@@ -3,6 +3,7 @@
 
 const { jwtVerify } = require('jose');
 const { google }    = require('googleapis');
+const { ACCESS, MANAGER_NAME_EMAIL, getUserRole } = require('../lib/access');
 
 const SECRET = new TextEncoder().encode(process.env.SESSION_SECRET);
 const MIN_FEEDBACK_NOTES_WORDS = 30;
@@ -10,26 +11,9 @@ const ROUND_SCORE_LABEL = 'Round Score';
 const PORTAL_TIME_ZONE = 'Asia/Kolkata';
 
 const IS_DEV = process.env.NEXTAUTH_URL?.includes('localhost');
-const ACCESS = {
-  admins: ['arth.mohan@peepalconsulting.com', 'anish.k@peepalconsulting.com'],
-  recruiters: ['ramya.h@peepalconsulting.com', 'krishna.kumar@peepalconsulting.com', 'aditi.kaul@peepalconsulting.com', 'renjith.k@peepalconsulting.com'],
-  managers: ['ravi.kant.sharma@peepalconsulting.com', 'ambika.s@peepalconsulting.com', 'shiwala.dubey@peepalconsulting.com', 'parv.u@peepalconsulting.com', 'ramakrishna.d@peepalconsulting.com', 'rohan.p@peepalconsulting.com', 'rupa.moogi@peepalconsulting.com', 'mayank.bajaj@peepalconsulting.com'],
-  kaveri: ['kaveri.karnam@peepalconsulting.com'],
-  vijay: ['vijay@peepalconsulting.com'],
-};
-const MANAGER_NAME_EMAIL = {
-  Ravikant: 'ravi.kant.sharma@peepalconsulting.com',
-  Ambika: 'ambika.s@peepalconsulting.com',
-  Shiwala: 'shiwala.dubey@peepalconsulting.com',
-  Parv: 'parv.u@peepalconsulting.com',
-  Ramakrishna: 'ramakrishna.d@peepalconsulting.com',
-  Rohan: 'rohan.p@peepalconsulting.com',
-  Rupa: 'rupa.moogi@peepalconsulting.com',
-  Mayank: 'mayank.bajaj@peepalconsulting.com',
-};
 
 async function getSession(event) {
-  if (IS_DEV) return { email: 'dev@peepalconsulting.com', name: 'Dev User' };
+  if (IS_DEV) return { email: 'arth.mohan@peepalconsulting.com', name: 'Arth Mohan' };
   const cookie = event.headers.cookie || '';
   const match  = cookie.match(/peepal_session=([^;]+)/);
   if (!match) return null;
@@ -60,23 +44,14 @@ function colToLetter(col) {
   return letter;
 }
 
-function getUserRole(email) {
-  if (!email) return 'viewer';
-  if (ACCESS.admins.includes(email)) return 'admin';
-  if (ACCESS.recruiters.includes(email)) return 'recruiter';
-  if (ACCESS.kaveri.includes(email)) return 'kaveri';
-  if (ACCESS.vijay.includes(email)) return 'vijay';
-  if (ACCESS.managers.includes(email)) return 'manager';
-  return 'viewer';
-}
-
 function canWriteFeedback(email, managerName, stage) {
   const role = getUserRole(email);
   if (role === 'admin' || role === 'recruiter') return true;
   if (role === 'kaveri') return stage === 'kaveri_round';
   if (role === 'vijay') return stage === 'vijay_round';
   if (role === 'manager') {
-    const managerEmail = MANAGER_NAME_EMAIL[managerName];
+    const managerEmail = MANAGER_NAME_EMAIL[managerName.toLowerCase()] ||
+                         MANAGER_NAME_EMAIL[managerName] || null;
     return managerEmail === email && stage === 'manager_round';
   }
   return false;
@@ -181,7 +156,6 @@ exports.handler = async (event) => {
       };
     }
 
-    // Build scores line if any scores provided
     const scoreParts = Object.entries(normalizedScores).map(([label, value]) => `${label}: ${value}`);
     const scoresLine = scoreParts.length > 0 ? `[scores: ${scoreParts.join(' · ')}] ` : '';
 
@@ -189,13 +163,12 @@ exports.handler = async (event) => {
     const prefix    = stage ? `[${stage} — ${timestamp} — ${session.name}]` : `[${timestamp} — ${session.name}]`;
     const entry     = `${prefix} ${scoresLine}${notes || ''}`.trim();
 
-    const colLetter   = colToLetter(20); // Remarks = col 20
+    const colLetter   = colToLetter(20);
     const range       = `'${sheetName}'!${colLetter}${row}`;
     const existing    = await sheets.spreadsheets.values.get({ spreadsheetId: process.env.SHEET_ID, range });
     const existingVal = existing.data.values?.[0]?.[0] || '';
     updates.push({ range, values: [[existingVal ? `${existingVal}\n\n${entry}` : entry]] });
 
-    // Write to Feedback Log sheet
     const logSheet = '📝 Feedback Log';
     const [nameRes, roleRes, deptRes] = await Promise.all([
       sheets.spreadsheets.values.get({ spreadsheetId: process.env.SHEET_ID, range: `'${sheetName}'!B${row}` }),
@@ -205,14 +178,11 @@ exports.handler = async (event) => {
     const candidateName = nameRes.data.values?.[0]?.[0] || '';
     const candidateRoleForLog = roleRes.data.values?.[0]?.[0] || '';
     const candidateDept = deptRes.data.values?.[0]?.[0] || '';
-    const stageLabelMap = {
-      recruiter_hr_feedback: 'Recruiter / HR Feedback',
-    };
+    const stageLabelMap = { recruiter_hr_feedback: 'Recruiter / HR Feedback' };
     const stageLabel = stage
       ? (stageLabelMap[stage] || stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))
       : '';
 
-    // Write remarks to Master Tracker
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: process.env.SHEET_ID,
       requestBody: { valueInputOption: 'USER_ENTERED', data: updates },
@@ -224,7 +194,6 @@ exports.handler = async (event) => {
     const legacyHunger = normalizedScores.Hunger || '';
     const roundScore = normalizedScores[ROUND_SCORE_LABEL] || '';
 
-    // Append row to Feedback Log
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID,
       range: `'${logSheet}'!A:K`,
