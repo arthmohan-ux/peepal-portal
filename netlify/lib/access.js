@@ -11,6 +11,7 @@ const ACCESS = {
 };
 
 const MANAGER_NAME_EMAIL = {
+  'Kaveri': 'kaveri.karnam@peepalconsulting.com',
   'Ravikant': 'ravi.kant.sharma@peepalconsulting.com',
   'Ambika': 'ambika.s@peepalconsulting.com',
   'Shiwala': 'shiwala.dubey@peepalconsulting.com',
@@ -19,7 +20,17 @@ const MANAGER_NAME_EMAIL = {
   'Rohan': 'rohan.p@peepalconsulting.com',
   'Rupa': 'rupa.moogi@peepalconsulting.com',
   'Mayank': 'mayank.bajaj@peepalconsulting.com',
-  'Kaveri': 'kaveri.karnam@peepalconsulting.com',
+  'Renjith': 'renjith.k@peepalconsulting.com',
+  'kaveri': 'kaveri.karnam@peepalconsulting.com',
+  'ravikant': 'ravi.kant.sharma@peepalconsulting.com',
+  'ambika': 'ambika.s@peepalconsulting.com',
+  'shiwala': 'shiwala.dubey@peepalconsulting.com',
+  'parv': 'parv.u@peepalconsulting.com',
+  'ramakrishna': 'ramakrishna.d@peepalconsulting.com',
+  'rohan': 'rohan.p@peepalconsulting.com',
+  'rupa': 'rupa.moogi@peepalconsulting.com',
+  'mayank': 'mayank.bajaj@peepalconsulting.com',
+  'renjith': 'renjith.k@peepalconsulting.com',
 };
 
 function normalizeEmail(email) {
