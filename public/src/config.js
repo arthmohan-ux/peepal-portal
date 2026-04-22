@@ -8,7 +8,7 @@ window.PORTAL_CONFIG = {
   DEPT_ORDER: ["TA","BD","Central Marketing","TAD","HR","Founder's Office"],
 
   DEPT_ROLES: {
-  'TA': ["Consultant - TA","Senior Consultant - TA","ATL - TA","Management Trainee (Consultant)- TA","VP - TA","Exec Search - TA","Business Head - C2H","test"],
+  'TA': ["Consultant - TA","Senior Consultant - TA","ATL - TA","Management Trainee (Consultant)- TA","VP - TA","Exec Search - TA","Business Head - C2H"],
   'BD': ["Executive - BD","Delivery - BD","Analyst - BD","Growth - BD","Lead - BD","Manager - BD","Head - BD"],
   'Central Marketing': ["Executive - Central Marketing","GD - Central Marketing","Market Research - Central Marketing","Marketing Lead - Central Marketing","Video Editor - Central Marketing"],
   'TAD': ["BD & CR - TAD","MT (BD & CR) - TAD","GD - TAD","Marketing Executive - TAD","Marketing Lead - TAD","Event Operations - TAD"],
@@ -45,7 +45,6 @@ window.PORTAL_CONFIG = {
   'Operations - HR': ["Screening","Aptitude","Manager Round","Kaveri Round","Vijay Round"],
   'Senior TA - HR': ["Screening","Aptitude","Manager Round","Kaveri Round","Vijay Round"],
   'Founder's Office': ["Screening","Aptitude","AI Interview","Manager Round","Kaveri Round","Vijay Round"],
-  'test': ["Screening","Aptitude","Manager Round","Kaveri Round","Vijay Round"],
 },
 
   ROLE_MANAGERS: {
@@ -77,7 +76,6 @@ window.PORTAL_CONFIG = {
   'Operations - HR': ["Renjith"],
   'Senior TA - HR': ["Renjith"],
   'Founder's Office': ["Kaveri"],
-  'test': ["Ramakrishna","Mayank"],
 },
 
   RECRUITERS: ["Ramya","Krishna","Aditi","Renjith"],
