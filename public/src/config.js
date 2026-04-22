@@ -13,7 +13,7 @@ window.PORTAL_CONFIG = {
   'Central Marketing': ["Executive - Central Marketing","GD - Central Marketing","Market Research - Central Marketing","Marketing Lead - Central Marketing","Video Editor - Central Marketing"],
   'TAD': ["BD & CR - TAD","MT (BD & CR) - TAD","GD - TAD","Marketing Executive - TAD","Marketing Lead - TAD","Event Operations - TAD"],
   'HR': ["Operations - HR","Senior TA - HR"],
-  'Founder's Office': ["Founder's Office"],
+  "Founder's Office": ["Founder's Office"],
 },
 
   ROLE_PIPELINE: {
@@ -44,7 +44,7 @@ window.PORTAL_CONFIG = {
   'Event Operations - TAD': ["Screening","Aptitude","Manager Round","Kaveri Round","Vijay Round"],
   'Operations - HR': ["Screening","Aptitude","Manager Round","Kaveri Round","Vijay Round"],
   'Senior TA - HR': ["Screening","Aptitude","Manager Round","Kaveri Round","Vijay Round"],
-  'Founder's Office': ["Screening","Aptitude","AI Interview","Manager Round","Kaveri Round","Vijay Round"],
+  "Founder's Office": ["Screening","Aptitude","AI Interview","Manager Round","Kaveri Round","Vijay Round"],
 },
 
   ROLE_MANAGERS: {
@@ -75,7 +75,7 @@ window.PORTAL_CONFIG = {
   'Marketing Lead - TAD': ["Kaveri","Parv"],
   'Operations - HR': ["Renjith"],
   'Senior TA - HR': ["Renjith"],
-  'Founder's Office': ["Kaveri"],
+  "Founder's Office": ["Kaveri"],
 },
 
   RECRUITERS: ["Ramya","Krishna","Aditi","Renjith"],
