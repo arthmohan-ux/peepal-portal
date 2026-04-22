@@ -338,7 +338,7 @@ const RUBRIC_TAD_EVENT_OPERATIONS = createRubric([
   ]],
 ]);
 const ROLE_FEEDBACK_RUBRICS = {
-  "Founder's Office": RUBRIC_FOUNDERS_OFFICE,
+  "Founders Office": RUBRIC_FOUNDERS_OFFICE,
   'Exec Search - TA': RUBRIC_EXEC_SEARCH_TA,
   'VP - TA': RUBRIC_VP_TA,
   'Head - BD': RUBRIC_BD_HEAD,
@@ -1139,11 +1139,11 @@ function buildEmailComposer(c, pipeline) {
 function buildEmailPreviewHtml(c, stage, customMsg, includeProfile, includeFeedback, includeScores) {
   const DEPT_ACCENT = {
     'TA': '#3949AB', 'BD': '#1565C0', 'Central Marketing': '#6A1B9A',
-    'TAD': '#2E7D32', 'HR': '#F57F17', "Founder's Office": '#AD1457',
+    'TAD': '#2E7D32', 'HR': '#F57F17', "Founders Office": '#AD1457',
   };
   const DEPT_BG = {
     'TA': '#E8EAF6', 'BD': '#E3F2FD', 'Central Marketing': '#F3E5F5',
-    'TAD': '#E8F5E9', 'HR': '#FFF9C4', "Founder's Office": '#FCE4EC',
+    'TAD': '#E8F5E9', 'HR': '#FFF9C4', "Founders Office": '#FCE4EC',
   };
   const accent = DEPT_ACCENT[c.department] || '#283593';
   const bg     = DEPT_BG[c.department]     || '#F5F5F5';

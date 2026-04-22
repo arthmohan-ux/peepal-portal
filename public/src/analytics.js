@@ -2,7 +2,7 @@
 // Analytics dashboard — pipeline funnel, TAT, dept breakdown, recruiter perf, trends
 
 // ── CONFIG (mirrors app.js) ──
-const DEPT_ORDER = ['TA','BD','Central Marketing','TAD','HR',"Founder's Office"];
+const DEPT_ORDER = ['TA','BD','Central Marketing','TAD','HR',"Founders Office"];
 
 const DEPT_ROLES = {
   'TA':               ['Consultant - TA','Senior Consultant - TA','ATL - TA','Management Trainee (Consultant)- TA','VP - TA','Exec Search - TA','Business Head - C2H'],
@@ -10,7 +10,7 @@ const DEPT_ROLES = {
   'Central Marketing':['Executive - Central Marketing','GD - Central Marketing','Market Research - Central Marketing','Marketing Lead - Central Marketing','Video Editor - Central Marketing'],
   'TAD':              ['BD & CR - TAD','MT (BD & CR) - TAD','GD - TAD','Marketing Executive - TAD','Marketing Lead - TAD','Event Operations - TAD'],
   'HR':               ['Operations - HR','Senior TA - HR'],
-  "Founder's Office": ["Founder's Office"],
+  "Founders Office": ["Founders Office"],
 };
 
 const ROLE_PIPELINE = {
@@ -41,7 +41,7 @@ const ROLE_PIPELINE = {
   'Event Operations - TAD':              ['Screening','Aptitude','Manager Round','Kaveri Round','Vijay Round'],
   'Operations - HR':                     ['Screening','Aptitude','Manager Round','Kaveri Round','Vijay Round'],
   'Senior TA - HR':                      ['Screening','Aptitude','Manager Round','Kaveri Round','Vijay Round'],
-  "Founder's Office":                    ['Screening','Aptitude','AI Interview','Manager Round','Kaveri Round','Vijay Round'],
+  "Founders Office":                    ['Screening','Aptitude','AI Interview','Manager Round','Kaveri Round','Vijay Round'],
 };
 
 const FUNNEL_STATUS_ORDER = [
@@ -163,7 +163,7 @@ const DEPT_COLOURS = {
   'Central Marketing':'#6A1B9A',
   'TAD':              '#2E7D32',
   'HR':               '#F57F17',
-  "Founder's Office": '#AD1457',
+  "Founders Office": '#AD1457',
 };
 
 const MULTI_SELECT_CONFIG = {

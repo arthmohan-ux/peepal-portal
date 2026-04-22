@@ -30,7 +30,7 @@ const ROLE_PIPELINE = {
   'Event Operations - TAD':              ['Screening','Aptitude','Manager Round','Kaveri Round','Vijay Round'],
   'Operations - HR':                     ['Screening','Aptitude','Manager Round','Kaveri Round','Vijay Round'],
   'Senior TA - HR':                      ['Screening','Aptitude','Manager Round','Kaveri Round','Vijay Round'],
-  "Founder's Office":                    ['Screening','Aptitude','AI Interview','Manager Round','Kaveri Round','Vijay Round'],
+  "Founders Office":                    ['Screening','Aptitude','AI Interview','Manager Round','Kaveri Round','Vijay Round'],
 };
 
 const DEPT_ROLES = {
@@ -39,7 +39,7 @@ const DEPT_ROLES = {
   'Central Marketing':['Executive - Central Marketing','GD - Central Marketing','Market Research - Central Marketing','Marketing Lead - Central Marketing','Video Editor - Central Marketing'],
   'TAD':              ['BD & CR - TAD','MT (BD & CR) - TAD','GD - TAD','Marketing Executive - TAD','Marketing Lead - TAD','Event Operations - TAD'],
   'HR':               ['Operations - HR','Senior TA - HR'],
-  "Founder's Office": ["Founder's Office"],
+  "Founders Office": ["Founders Office"],
 };
 
 const REJECT_STATUSES  = ['Screen Reject','Aptitude Reject','Assessment Reject','AI Interview Reject','Manager Round Reject','HR Reject','Kaveri Reject','Vijay Reject','Offer Dropout','Drop'];
@@ -305,7 +305,7 @@ function renderTable(candidates, groupBy) {
   // Sort group keys — use DEPT_ORDER for dept grouping
   let keys = Object.keys(grouped);
   if (groupBy === 'department') {
-    const order = ['TA','BD','Central Marketing','TAD','HR',"Founder's Office"];
+    const order = ['TA','BD','Central Marketing','TAD','HR',"Founders Office"];
     keys.sort((a, b) => {
       const ai = order.indexOf(a); const bi = order.indexOf(b);
       return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
