@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -317,26 +318,22 @@ code{background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:va
 <!-- GENERATE -->
 <div class="page" id="page-generate">
   <div class="page-hd"><h1>Generate Code</h1><p>Produces copy-paste ready code blocks from your current config. Paste each into the right file, then git push.</p></div>
-  <div class="gen-bar">
-    <div class="gen-bar-text"><h3>Ready to generate?</h3><p>Click to produce updated code blocks from your current config.</p></div>
-    <button class="gen-btn" onclick="generateAll()">⚙ Generate All</button>
+  <div style="margin-bottom:20px">
+    <div class="gen-bar" style="margin-bottom:10px">
+      <div class="gen-bar-text"><h3>🚀 One-click deploy</h3><p>Commits config.js + access.js to GitHub and writes GAS config to the sheet. Netlify auto-deploys in ~30s.</p></div>
+      <button class="gen-btn" id="deploy-btn" onclick="deployToGitHub()" style="background:var(--green);color:#0D1117;min-width:120px">🚀 Deploy</button>
+    </div>
+    <div id="deploy-status" class="hidden" style="font-size:11px;font-family:var(--mono);padding:10px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg);margin-bottom:10px;line-height:1.6"></div>
+    <div class="gen-bar" style="background:transparent;border-color:var(--border)">
+      <div class="gen-bar-text"><h3>Manual copy blocks</h3><p>For GAS scripts and candidate.js — still need manual paste into Apps Script editor.</p></div>
+      <button class="gen-btn" onclick="generateAll()">⚙ Generate</button>
+    </div>
   </div>
   <div id="gen-out" class="hidden">
+    <div class="warn" style="margin-bottom:16px">These blocks are for GAS scripts and candidate.js only — everything else is handled by the Deploy button above.</div>
     <div class="code-block">
-      <div class="code-hd"><span class="code-file">📄 <span>public/src/config.js</span> — replace entire file</span><button class="copy-btn" onclick="copyOut('out-config',this)">Copy</button></div>
-      <textarea class="code-ta" id="out-config" rows="18" readonly></textarea>
-    </div>
-    <div class="code-block">
-      <div class="code-hd"><span class="code-file">📄 <span>netlify/functions/feedback.js</span> — replace ACCESS + MANAGER_NAME_EMAIL constants only</span><button class="copy-btn" onclick="copyOut('out-feedback',this)">Copy</button></div>
-      <textarea class="code-ta" id="out-feedback" rows="14" readonly></textarea>
-    </div>
-    <div class="code-block">
-      <div class="code-hd"><span class="code-file">📄 <span>netlify/functions/admin-page.js</span> — replace ADMIN_EMAILS array only</span><button class="copy-btn" onclick="copyOut('out-admin-fn',this)">Copy</button></div>
-      <textarea class="code-ta" id="out-admin-fn" rows="5" readonly></textarea>
-    </div>
-    <div class="code-block">
-      <div class="code-hd"><span class="code-file">📄 <span>netlify/lib/access.js</span> — replace ACCESS + MANAGER_NAME_EMAIL only</span><button class="copy-btn" onclick="copyOut('out-access',this)">Copy</button></div>
-      <textarea class="code-ta" id="out-access" rows="14" readonly></textarea>
+      <div class="code-hd"><span class="code-file">📄 <span>public/src/candidate.js</span> — replace ACCESS, MANAGER_NAME_EMAIL, KNOWN_PEOPLE at top of file</span><button class="copy-btn" onclick="copyOut('out-candidate',this)">Copy</button></div>
+      <textarea class="code-ta" id="out-candidate" rows="14" readonly></textarea>
     </div>
     <div class="code-block">
       <div class="code-hd"><span class="code-file">📄 <span>HiringTracker_v1.gs</span> — replace DEPT_ROLES, ROLE_PIPELINE, ROLE_MANAGERS, RECRUITERS</span><button class="copy-btn" onclick="copyOut('out-gas-tracker',this)">Copy</button></div>
@@ -740,15 +737,12 @@ function renderGas() {
 
 // ── GENERATE ──
 function generateAll() {
-  document.getElementById('out-config').value     = genConfig();
-  document.getElementById('out-feedback').value   = genFeedback();
-  document.getElementById('out-admin-fn').value   = genAdminFn();
-  document.getElementById('out-access').value     = genAccessLib();
-  document.getElementById('out-gas-tracker').value= genGasTracker();
-  document.getElementById('out-gas-email').value  = genGasEmail();
+  document.getElementById('out-candidate').value   = genCandidateJs();
+  document.getElementById('out-gas-tracker').value = genGasTracker();
+  document.getElementById('out-gas-email').value   = genGasEmail();
   document.getElementById('gen-out').classList.remove('hidden');
   setTimeout(()=>document.getElementById('gen-out').scrollIntoView({behavior:'smooth'}),100);
-  toast('Generated! Copy each block and deploy.',true);
+  toast('Manual blocks generated.',true);
 }
 
 function genConfig() {
@@ -870,6 +864,77 @@ const STATUS_THRESHOLD = ${fmtObj(S.gas.thresholds)};
 const MANAGER_EMAILS = ${fmtObj(S.gas.managerEmails)};
 
 const RECRUITER_EMAILS = ${fmtObj(S.gas.recruiterEmails)};`;
+}
+
+function genCandidateJs() {
+  const lines = [];
+  lines.push('// ── ROLE-BASED ACCESS CONFIG ──');
+  lines.push('const ACCESS = {');
+  lines.push('  admins:     ' + JSON.stringify(S.access.admins||[]) + ',');
+  lines.push('  recruiters: ' + JSON.stringify(S.access.recruiters||[]) + ',');
+  lines.push('  managers:   ' + JSON.stringify(S.access.managers||[]) + ',');
+  lines.push('  kaveri:     ' + JSON.stringify(S.access.kaveri||[]) + ',');
+  lines.push('  vijay:      ' + JSON.stringify(S.access.vijay||[]) + ',');
+  lines.push('};');
+  lines.push('');
+  lines.push('const MANAGER_NAME_EMAIL = {');
+  Object.entries(S.managerNameEmail).forEach(([k,v]) => lines.push(`  '${k}': '${v}',`));
+  lines.push('};');
+  lines.push('');
+  lines.push('const KNOWN_PEOPLE = ' + JSON.stringify(S.knownPeople, null, 2) + ';');
+  return '// ── Paste into public/src/candidate.js\n// Replace ACCESS, MANAGER_NAME_EMAIL, and KNOWN_PEOPLE at the top of the file.\n// Everything below KNOWN_PEOPLE stays unchanged.\n\n' + lines.join('\n');
+}
+
+async function deployToGitHub() {
+  const btn = document.getElementById('deploy-btn');
+  const statusEl = document.getElementById('deploy-status');
+  btn.disabled = true;
+  btn.textContent = '⏳ Deploying...';
+  statusEl.classList.remove('hidden');
+  statusEl.style.color = 'var(--muted)';
+  statusEl.textContent = 'Committing to GitHub and writing to sheet...';
+
+  try {
+    const res = await fetch('/api/admin/deploy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config: S }),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      const r = data.results;
+      const githubOk = r.github.committed.length > 0;
+      const sheetOk  = r.sheet?.success;
+      const githubFailed = r.github.failed.length > 0;
+
+      let msg = '';
+      if (githubOk) msg += `✓ GitHub: committed ${r.github.committed.map(p=>p.split('/').pop()).join(', ')}`;
+      if (githubFailed) msg += `\n✗ GitHub failed: ${r.github.failed.map(f=>f.path.split('/').pop()).join(', ')}`;
+      if (sheetOk) msg += `\n✓ Sheet: GAS Config tab updated (${r.sheet.rows} rows)`;
+      else msg += `\n✗ Sheet write failed: ${r.sheet?.error || 'unknown error'}`;
+      msg += `\n\nNetlify auto-deploys in ~30s. Remember to update GAS scripts and candidate.js manually using the Generate blocks below.`;
+
+      statusEl.style.color = (githubOk && sheetOk) ? 'var(--green)' : 'var(--yellow)';
+      statusEl.textContent = msg;
+
+      // Clear saved state since it's now deployed
+      localStorage.removeItem('peepal_admin_state_v1');
+      updateSaveIndicator(false);
+      document.getElementById('save-indicator').textContent = '✓ Deployed';
+      document.getElementById('save-indicator').style.color = 'var(--green)';
+      toast('Deployed!', true);
+    } else {
+      throw new Error(data.error || 'Deploy failed');
+    }
+  } catch(err) {
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '✗ Deploy failed: ' + err.message;
+    toast('Deploy failed', false);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🚀 Deploy';
+  }
 }
 
 function copyOut(id, btn) {
