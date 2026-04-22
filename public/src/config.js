@@ -12,7 +12,7 @@ window.PORTAL_CONFIG = {
   'BD': ["Executive - BD","Delivery - BD","Analyst - BD","Growth - BD","Lead - BD","Manager - BD","Head - BD"],
   'Central Marketing': ["Executive - Central Marketing","GD - Central Marketing","Market Research - Central Marketing","Marketing Lead - Central Marketing","Video Editor - Central Marketing"],
   'TAD': ["BD & CR - TAD","MT (BD & CR) - TAD","GD - TAD","Marketing Executive - TAD","Marketing Lead - TAD","Event Operations - TAD"],
-  'HR': ["Operations - HR","Senior TA - HR"],
+  'HR': ["Operations - HR","Senior TA - HR","TA - HR"],
   'Founders Office': ["Founders Office"],
 },
 
@@ -45,6 +45,7 @@ window.PORTAL_CONFIG = {
   'Operations - HR': ["Screening","Aptitude","Manager Round","Kaveri Round","Vijay Round"],
   'Senior TA - HR': ["Screening","Aptitude","Manager Round","Kaveri Round","Vijay Round"],
   'Founders Office': ["Screening","Aptitude","AI Interview","Manager Round","Kaveri Round","Vijay Round"],
+  'TA - HR': ["Screening","Aptitude","Manager Round","Kaveri Round","Vijay Round"],
 },
 
   ROLE_MANAGERS: {
@@ -76,12 +77,13 @@ window.PORTAL_CONFIG = {
   'Operations - HR': ["Renjith"],
   'Senior TA - HR': ["Renjith"],
   'Founders Office': ["Kaveri"],
+  'TA - HR': [],
 },
 
   RECRUITERS: ["Ramya","Krishna","Aditi","Renjith"],
 
   ACCESS: {
-    admins:     ["arth.mohan@peepalconsulting.com","anish.k@peepalconsulting.com"],
+    admins:     ["arth.mohan@peepalconsulting.com","anish.k@peepalconsulting.com","renjith.k@peepalconsulting.com"],
     recruiters: ["ramya.h@peepalconsulting.com","krishna.kumar@peepalconsulting.com","aditi.kaul@peepalconsulting.com","renjith.k@peepalconsulting.com"],
     managers:   ["ravi.kant.sharma@peepalconsulting.com","ambika.s@peepalconsulting.com","shiwala.dubey@peepalconsulting.com","parv.u@peepalconsulting.com","ramakrishna.d@peepalconsulting.com","rohan.p@peepalconsulting.com","rupa.moogi@peepalconsulting.com","mayank.bajaj@peepalconsulting.com"],
     kaveri:     ["kaveri.karnam@peepalconsulting.com"],
