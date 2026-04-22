@@ -97,6 +97,8 @@ window.PORTAL_CONFIG = {
   'Rohan': "rohan.p@peepalconsulting.com",
   'Rupa': "rupa.moogi@peepalconsulting.com",
   'Mayank': "mayank.bajaj@peepalconsulting.com",
+  'Kaveri': "kaveri.karnam@peepalconsulting.com",
+    'Renjith': "renjith.k@peepalconsulting.com",
 },
 
   KNOWN_PEOPLE: [
