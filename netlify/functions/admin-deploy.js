@@ -306,8 +306,7 @@ function generateCandidateJsTop(config) {
 // Fetches current candidate.js from GitHub, replaces the config block at the top,
 // leaves everything from PORTAL_BASE_URL onwards untouched.
 async function patchCandidateJs(config, author) {
-  const ANCHOR = 'const PORTAL_BASE_URL';
-
+const ANCHOR = '// ── KNOWN PEOPLE for recipient picker ──';
   const file = await getFile('public/src/candidate.js');
   if (!file) throw new Error('candidate.js not found in repo');
 

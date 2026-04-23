@@ -12,17 +12,80 @@ const ACCESS = {
 
 // Manager first-name → email map for matching sheet "Manager" column
 const MANAGER_NAME_EMAIL = {
-  'Kaveri':  'kaveri.karnam@peepalconsulting.com',
-  'Ravikant':  'ravi.kant.sharma@peepalconsulting.com',
-  'Ambika':  'ambika.s@peepalconsulting.com',
-  'Shiwala':  'shiwala.dubey@peepalconsulting.com',
-  'Parv':  'parv.u@peepalconsulting.com',
-  'Ramakrishna':  'ramakrishna.d@peepalconsulting.com',
-  'Rohan':  'rohan.p@peepalconsulting.com',
-  'Rupa':  'rupa.moogi@peepalconsulting.com',
-  'Mayank':  'mayank.bajaj@peepalconsulting.com',
-  'Renjith':  'renjith.k@peepalconsulting.com',
+  'Kaveri':        'kaveri.karnam@peepalconsulting.com',
+  'Ravikant':      'ravi.kant.sharma@peepalconsulting.com',
+  'Ambika':        'ambika.s@peepalconsulting.com',
+  'Shiwala':       'shiwala.dubey@peepalconsulting.com',
+  'Parv':          'parv.u@peepalconsulting.com',
+  'Ramakrishna':   'ramakrishna.d@peepalconsulting.com',
+  'Rohan':         'rohan.p@peepalconsulting.com',
+  'Rupa':          'rupa.moogi@peepalconsulting.com',
+  'Mayank':        'mayank.bajaj@peepalconsulting.com',
+  'Renjith':       'renjith.k@peepalconsulting.com',
 };
+
+function getUserRole(email) {
+  if (!email) return 'viewer';
+  if (ACCESS.admins.includes(email))     return 'admin';
+  if (ACCESS.recruiters.includes(email)) return 'recruiter';
+  if (ACCESS.kaveri.includes(email))     return 'kaveri';
+  if (ACCESS.vijay.includes(email))      return 'vijay';
+  if (ACCESS.managers.includes(email))   return 'manager';
+  return 'viewer';
+}
+
+function canWriteFeedback(email, candidate, stage) {
+  const role = getUserRole(email);
+  if (role === 'admin' || role === 'recruiter') return true;
+  if (role === 'kaveri') return stage === 'kaveri_round';
+  if (role === 'vijay')  return stage === 'vijay_round';
+  if (role === 'manager') {
+    const managerEmail = MANAGER_NAME_EMAIL[candidate.manager];
+    return managerEmail === email && stage === 'manager_round';
+  }
+  return false;
+}
+
+function getPermittedFeedbackStages(email, candidate, availableRounds) {
+  const role = getUserRole(email);
+  const stageKeys = availableRounds.map(stage => ({
+    label: stage,
+    key: stage.toLowerCase().replace(/\s+/g, '_'),
+  }));
+  const recruiterHrStage = { label: 'Recruiter / HR Feedback', key: 'recruiter_hr_feedback' };
+
+  if (role === 'admin' || role === 'recruiter') return [recruiterHrStage, ...stageKeys];
+  if (role === 'kaveri') return stageKeys.filter(stage => stage.key === 'kaveri_round');
+  if (role === 'vijay')  return stageKeys.filter(stage => stage.key === 'vijay_round');
+  if (role === 'manager') {
+    const managerEmail = MANAGER_NAME_EMAIL[candidate.manager];
+    if (managerEmail !== email) return [];
+    return stageKeys.filter(stage => stage.key === 'manager_round');
+  }
+  return [];
+}
+
+// ── KNOWN PEOPLE for recipient picker ──
+const KNOWN_PEOPLE = [
+  { name: 'Ramya',       email: 'ramya.h@peepalconsulting.com' },
+  { name: 'Krishna',     email: 'krishna.kumar@peepalconsulting.com' },
+  { name: 'Aditi',       email: 'aditi.kaul@peepalconsulting.com' },
+  { name: 'Renjith',     email: 'renjith.k@peepalconsulting.com' },
+  { name: 'Kaveri',      email: 'kaveri.karnam@peepalconsulting.com' },
+  { name: 'Ravikant',    email: 'ravi.kant.sharma@peepalconsulting.com' },
+  { name: 'Ambika',      email: 'ambika.s@peepalconsulting.com' },
+  { name: 'Parv',        email: 'parv.u@peepalconsulting.com' },
+  { name: 'Mayank',      email: 'mayank.bajaj@peepalconsulting.com' },
+  { name: 'Anil',        email: 'anil.kumar.s@peepalconsulting.com' },
+  { name: 'Vijay',       email: 'vijay@peepalconsulting.com' },
+  { name: 'Arth',        email: 'arth.mohan@peepalconsulting.com' },
+  { name: 'Anish',       email: 'anish.k@peepalconsulting.com' },
+  { name: 'Rohan',       email: 'rohan.p@peepalconsulting.com' },
+  { name: 'Shiwala',     email: 'shiwala.dubey@peepalconsulting.com' },
+  { name: 'Ramakrishna', email: 'ramakrishna.d@peepalconsulting.com' },
+  { name: 'Rupa',        email: 'rupa.moogi@peepalconsulting.com' },
+];
+
 const PORTAL_BASE_URL = window.location.origin;
 const MIN_FEEDBACK_NOTES_WORDS = 30;
 const ROUND_SCORE_LABEL = 'Round Score';
@@ -277,6 +340,7 @@ const RUBRIC_TAD_EVENT_OPERATIONS = createRubric([
     'Initiative & ownership mindset',
   ]],
 ]);
+
 const ROLE_FEEDBACK_RUBRICS = {
   "Founders Office": RUBRIC_FOUNDERS_OFFICE,
   'Exec Search - TA': RUBRIC_EXEC_SEARCH_TA,
@@ -511,7 +575,6 @@ function openCandidatePanelByRow(rowNum) {
   renderPanel(c);
   document.getElementById('candidate-panel-overlay').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
-  // Update URL to reflect open candidate
   window.history.replaceState({}, '', `/dashboard?candidate=${rowNum}&tab=${activeTab}`);
 }
 
@@ -660,7 +723,6 @@ function infoCard(label, value) {
 function buildPipelineTimeline(c, pipeline) {
   const currentStatus = c.status || '';
 
-  // Determine how far through the pipeline we are
   const stageStateMap = {};
   const rejectedStages = {
     'Screen Reject':          'Screening',
@@ -698,7 +760,6 @@ function buildPipelineTimeline(c, pipeline) {
     }
   });
 
-  // Mark current/active stage
   const firstUpcoming = pipeline.find(s => stageStateMap[s] === 'upcoming');
   if (firstUpcoming && !rejectedAt) stageStateMap[firstUpcoming] = 'current';
 
@@ -747,7 +808,6 @@ function buildPipelineDatesTable(c, pipeline) {
       </tr>`;
   });
 
-  // Always show offered + joining
   rows += `
     <tr>
       <td style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--slate-500)">Offered Date</td>
@@ -779,7 +839,6 @@ function parseFeedbackEntries(remarks) {
   for (const part of parts) {
     const trimmed = part.trim();
     if (!trimmed.startsWith('[')) {
-      // Legacy plain remark — not in portal format
       legacy += (legacy ? '\n' : '') + trimmed;
       continue;
     }
@@ -815,7 +874,6 @@ function buildFeedbackForm(c) {
   const userEmail = window.__userEmail || '';
   const pipeline  = window.ROLE_PIPELINE[c.role] || [];
 
-  // Interview rounds only — no Aptitude, no Screening
   const INTERVIEW_ROUNDS = ['Assessment', 'AI Interview', 'Manager Round', 'HR Round', 'Kaveri Round', 'Vijay Round'];
   const availableRounds = pipeline.filter(s => INTERVIEW_ROUNDS.includes(s));
   const permittedRounds = getPermittedFeedbackStages(userEmail, c, availableRounds);
@@ -831,7 +889,6 @@ function buildFeedbackForm(c) {
   const firstStage = permittedRounds[0]?.key || '';
   const canWrite   = permittedRounds.length > 0 && canWriteFeedback(userEmail, c, firstStage);
 
-  // Parse existing feedback entries
   const { entries, legacy } = parseFeedbackEntries(c.remarks);
 
   const legacyHtml = legacy ? `
@@ -921,7 +978,6 @@ async function saveFeedback() {
   const { scores, missing } = collectFeedbackScores(currentCandidate);
   const rubric = getFeedbackRubric(currentCandidate);
 
-  // Role check
   const userEmail = window.__userEmail || '';
   if (!canWriteFeedback(userEmail, currentCandidate, stage)) {
     if (msgEl) msgEl.innerHTML = '<div class="send-error">You don\'t have permission to log feedback for this round.</div>';
@@ -961,7 +1017,6 @@ async function saveFeedback() {
 
     if (data.success) {
       if (msgEl) msgEl.innerHTML = '<div class="send-success">✓ Saved successfully</div>';
-      // Force fresh fetch by adding cache-bust param
       const freshRes = await fetch('/api/candidates?t=' + Date.now());
       if (freshRes.ok) {
         const freshData = await freshRes.json();
@@ -1003,7 +1058,6 @@ function buildEmailComposer(c, pipeline) {
       <span>${escHtml(p.name)}</span>
     </div>`).join('');
 
-  // Build initial preview
   const initialPreview = buildEmailPreviewHtml(c, 'all_rounds', '', true, true, true);
 
   return `
@@ -1166,7 +1220,6 @@ function refreshEmailPreview() {
   const includeFeedback= document.getElementById('include-feedback')?.checked ?? true;
   const includeScores  = document.getElementById('include-scores')?.checked ?? true;
 
-  // Update subject
   const stageLabel = stage === 'all_rounds'
     ? 'All Rounds Summary'
     : stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -1181,7 +1234,6 @@ function refreshEmailPreview() {
   }
 }
 
-// Mark subject as user-edited if they type in it
 document.addEventListener('input', e => {
   if (e.target?.id === 'email-subject-input') e.target.dataset.userEdited = '1';
 });
@@ -1291,7 +1343,6 @@ function copyCandidateLink(row) {
       }, 2000);
     }
   }).catch(() => {
-    // Fallback for browsers without clipboard API
     prompt('Copy this link:', url);
   });
 }
@@ -1313,5 +1364,5 @@ window.addCustomRecipient      = addCustomRecipient;
 window.updateEmailPreview      = updateEmailPreview;
 window.updateRoundScore        = updateRoundScore;
 window.copyCandidateLink       = copyCandidateLink;
-window.onFeedbackStageChange     = onFeedbackStageChange;
+window.onFeedbackStageChange   = onFeedbackStageChange;
 window.getUserRole             = getUserRole;
