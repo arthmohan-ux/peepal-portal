@@ -920,9 +920,10 @@ async function deployToGitHub() {
 
       // Clear saved state since it's now deployed
       localStorage.removeItem('peepal_admin_state_v1');
-      updateSaveIndicator(false);
-      document.getElementById('save-indicator').textContent = '✓ Deployed';
-      document.getElementById('save-indicator').style.color = 'var(--green)';
+const ind = document.getElementById('save-indicator');
+ind.textContent = '✓ Deployed';
+ind.style.color = 'var(--green)';
+ind.style.borderColor = 'rgba(63,185,80,.3)';
       toast('Deployed!', true);
     } else {
       throw new Error(data.error || 'Deploy failed');

@@ -27,7 +27,7 @@ async function getSession(event) {
 
 // ── GITHUB HELPERS ──
 
-async function getFileSha(path) {
+async function getFile(path) {
   const res = await fetch(
     `https://api.github.com/repos/${GITHUB_REPO}/contents/${path}?ref=${GITHUB_BRANCH}`,
     { headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: 'application/vnd.github+json' } }
@@ -35,17 +35,20 @@ async function getFileSha(path) {
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`GitHub API error getting ${path}: ${res.status}`);
   const data = await res.json();
-  return data.sha;
+  return {
+    sha: data.sha,
+    content: Buffer.from(data.content, 'base64').toString('utf8'),
+  };
 }
 
 async function commitFile(path, content, author) {
-  const sha = await getFileSha(path);
+  const existing = await getFile(path);
   const body = {
     message: `config: update ${path.split('/').pop()} via Admin Panel [${author}]`,
     content: Buffer.from(content).toString('base64'),
     branch: GITHUB_BRANCH,
   };
-  if (sha) body.sha = sha;
+  if (existing?.sha) body.sha = existing.sha;
   const res = await fetch(
     `https://api.github.com/repos/${GITHUB_REPO}/contents/${path}`,
     {
@@ -78,7 +81,6 @@ function getSheetClient() {
   return google.sheets({ version: 'v4', auth });
 }
 
-// Build the flat key-value rows for ⚙ GAS Config from the config payload
 function buildGasConfigRows(config) {
   const rows = [
     ['KEY', 'VALUE', 'LAST_UPDATED'],
@@ -89,39 +91,25 @@ function buildGasConfigRows(config) {
     ['RECRUITERS',     config.recruiters.join(','), new Date().toISOString()],
   ];
 
-  // Thresholds
   for (const [status, days] of Object.entries(config.gas.thresholds)) {
     rows.push([`THRESHOLD_${status}`, String(days), new Date().toISOString()]);
   }
-
-  // Manager emails (for EmailAutomations)
   for (const [name, email] of Object.entries(config.gas.managerEmails)) {
     rows.push([`MANAGER_EMAIL_${name}`, email, new Date().toISOString()]);
   }
-
-  // Recruiter emails (for EmailAutomations)
   for (const [name, email] of Object.entries(config.gas.recruiterEmails)) {
     rows.push([`RECRUITER_EMAIL_${name}`, email, new Date().toISOString()]);
   }
-
-  // Dept roles (for HiringTracker)
   for (const [dept, roles] of Object.entries(config.deptRoles)) {
     rows.push([`DEPT_ROLES_${dept}`, roles.join(','), new Date().toISOString()]);
   }
-
-  // Role pipelines
   for (const [role, stages] of Object.entries(config.rolePipeline)) {
     rows.push([`ROLE_PIPELINE_${role}`, stages.join(','), new Date().toISOString()]);
   }
-
-  // Role managers
   for (const [role, managers] of Object.entries(config.roleManagers)) {
     rows.push([`ROLE_MANAGERS_${role}`, managers.join(','), new Date().toISOString()]);
   }
-
-  // Dept order
   rows.push([`DEPT_ORDER`, config.deptOrder.join(','), new Date().toISOString()]);
-
   return rows;
 }
 
@@ -129,7 +117,6 @@ async function writeGasConfig(config) {
   const sheets = getSheetClient();
   const sheetId = process.env.SHEET_ID;
 
-  // Check if tab exists — if not, create it
   const meta = await sheets.spreadsheets.get({ spreadsheetId: sheetId });
   const existingSheets = meta.data.sheets.map(s => s.properties.title);
 
@@ -150,21 +137,17 @@ async function writeGasConfig(config) {
   }
 
   const rows = buildGasConfigRows(config);
-
-  // Clear and rewrite the entire tab
   await sheets.spreadsheets.values.clear({
     spreadsheetId: sheetId,
     range: `'${GAS_CONFIG_SHEET}'!A:C`,
   });
-
   await sheets.spreadsheets.values.update({
     spreadsheetId: sheetId,
     range: `'${GAS_CONFIG_SHEET}'!A1`,
     valueInputOption: 'RAW',
     requestBody: { values: rows },
   });
-
-  return rows.length - 1; // minus header
+  return rows.length - 1;
 }
 
 // ── GENERATE FILE CONTENTS ──
@@ -293,6 +276,78 @@ module.exports = {
 };`;
 }
 
+// ── CANDIDATE.JS TOP BLOCK GENERATOR + PATCHER ──
+
+// Generates only the config block that lives at the top of candidate.js
+function generateCandidateJsTop(config) {
+  const lines = [];
+  lines.push('// src/candidate.js');
+  lines.push('// Candidate side panel — full info view, pipeline timeline, scores, feedback form');
+  lines.push('');
+  lines.push('// ── ROLE-BASED ACCESS CONFIG ──');
+  lines.push('const ACCESS = {');
+  lines.push(`  admins:     ${JSON.stringify(config.access.admins||[])},`);
+  lines.push(`  recruiters: ${JSON.stringify(config.access.recruiters||[])},`);
+  lines.push(`  managers:   ${JSON.stringify(config.access.managers||[])},`);
+  lines.push(`  kaveri:     ${JSON.stringify(config.access.kaveri||[])},`);
+  lines.push(`  vijay:      ${JSON.stringify(config.access.vijay||[])},`);
+  lines.push('};');
+  lines.push('');
+  lines.push('// Manager first-name → email map for matching sheet "Manager" column');
+  lines.push('const MANAGER_NAME_EMAIL = {');
+  Object.entries(config.managerNameEmail).forEach(([k,v]) => {
+    lines.push(`  '${k}':  '${v}',`);
+  });
+  lines.push('};');
+  lines.push('');
+  return lines.join('\n');
+}
+
+// Fetches current candidate.js from GitHub, replaces the config block at the top,
+// leaves everything from PORTAL_BASE_URL onwards untouched.
+async function patchCandidateJs(config, author) {
+  const ANCHOR = 'const PORTAL_BASE_URL';
+
+  const file = await getFile('public/src/candidate.js');
+  if (!file) throw new Error('candidate.js not found in repo');
+
+  const anchorIndex = file.content.indexOf(ANCHOR);
+  if (anchorIndex === -1) {
+    throw new Error(`Anchor "${ANCHOR}" not found in candidate.js — cannot patch safely`);
+  }
+
+  const tail = file.content.slice(anchorIndex); // everything from PORTAL_BASE_URL onwards
+  const newTop = generateCandidateJsTop(config);
+  const newContent = newTop + tail;
+
+  // Commit the patched file
+  const body = {
+    message: `config: update candidate.js access config via Admin Panel [${author}]`,
+    content: Buffer.from(newContent).toString('base64'),
+    branch: GITHUB_BRANCH,
+    sha: file.sha,
+  };
+
+  const res = await fetch(
+    `https://api.github.com/repos/${GITHUB_REPO}/contents/public/src/candidate.js`,
+    {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${GITHUB_TOKEN}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`GitHub commit failed for candidate.js: ${res.status} — ${err}`);
+  }
+  return await res.json();
+}
+
 function fmtObj(obj) {
   const lines = Object.entries(obj).map(([k,v]) => `  '${k}': ${JSON.stringify(v)},`);
   return '{\n' + lines.join('\n') + '\n}';
@@ -317,9 +372,10 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid request body' }) };
   }
 
+  const author = session.name || session.email;
   const results = { github: { committed: [], failed: [] }, sheet: null };
 
-  // 1. Commit portal files to GitHub
+  // 1. Commit config.js and access.js (full file replace)
   const filesToCommit = [
     { path: 'public/src/config.js',  content: generateConfigJs(config) },
     { path: 'netlify/lib/access.js', content: generateAccessJs(config) },
@@ -327,7 +383,7 @@ exports.handler = async (event) => {
 
   for (const file of filesToCommit) {
     try {
-      await commitFile(file.path, file.content, session.name || session.email);
+      await commitFile(file.path, file.content, author);
       results.github.committed.push(file.path);
     } catch(err) {
       console.error(`GitHub commit failed for ${file.path}:`, err.message);
@@ -335,7 +391,16 @@ exports.handler = async (event) => {
     }
   }
 
-  // 2. Write config to ⚙ GAS Config sheet
+  // 2. Patch candidate.js (targeted replace of top config block only)
+  try {
+    await patchCandidateJs(config, author);
+    results.github.committed.push('public/src/candidate.js');
+  } catch(err) {
+    console.error('candidate.js patch failed:', err.message);
+    results.github.failed.push({ path: 'public/src/candidate.js', error: err.message });
+  }
+
+  // 3. Write config to ⚙ GAS Config sheet
   try {
     const rowCount = await writeGasConfig(config);
     results.sheet = { success: true, rows: rowCount };
