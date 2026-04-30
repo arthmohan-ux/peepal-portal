@@ -144,8 +144,8 @@ function applyFilters() {
     if (dept.length && !dept.includes(c.department))    return false;
     if (role.length && !role.includes(c.role))          return false;
     if (recruiter && c.recruiter  !== recruiter) return false;
-    if (week.length && !week.includes(getWeekLabel(c.sourcingDate)))   return false;
-    if (month.length && !month.includes(getMonthLabel(c.sourcingDate))) return false;
+    if (week.length && !week.includes(getWeekLabel(getCandidateFilterDate(c))))   return false;
+    if (month.length && !month.includes(getMonthLabel(getCandidateFilterDate(c)))) return false;
     if (status    && c.status     !== status)    return false;
     return true;
   });
@@ -254,7 +254,7 @@ function populateDateFilters() {
   const monthMap = new Map();
 
   allCandidates.forEach(candidate => {
-    const date = parseDate(candidate.sourcingDate);
+    const date = getCandidateFilterDate(candidate);
     if (!date) return;
 
     const week = getWeekLabel(date);
@@ -370,8 +370,8 @@ function buildRow(c) {
 }
 
 function compareCandidatesByNewest(a, b) {
-  const dateA = parseDate(a?.sourcingDate);
-  const dateB = parseDate(b?.sourcingDate);
+  const dateA = getCandidateFilterDate(a);
+  const dateB = getCandidateFilterDate(b);
 
   if (dateA && dateB) {
     return dateB.getTime() - dateA.getTime();
@@ -562,6 +562,14 @@ function getMonthLabel(val) {
   const d = parseDate(val);
   if (!d) return null;
   return d.toLocaleString('en-GB', { timeZone: 'Asia/Kolkata', month: 'long', year: 'numeric' });
+}
+
+function getCandidateFilterDate(candidate) {
+  if (candidate?.status === 'Joined') {
+    const joiningDate = parseDate(candidate.joiningDate);
+    if (joiningDate) return joiningDate;
+  }
+  return parseDate(candidate?.sourcingDate);
 }
 
 // ── STATUS CLASS HELPER ──

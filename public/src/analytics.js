@@ -270,7 +270,7 @@ function populateDateFilters() {
   const weekMap = new Map();
 
   rawCandidates.forEach(candidate => {
-    const date = parseDate(candidate.sourcingDate);
+    const date = getCandidateFilterDate(candidate);
     if (!date) return;
 
     const month = getMonthLabel(date);
@@ -294,7 +294,7 @@ function populateDateFilters() {
 }
 
 function applyFilters() {
-  filtered = getCandidatesMatchingFilters({ monthMode: 'sourcing' });
+  filtered = getCandidatesMatchingFilters({ monthMode: 'primary' });
   renderAll();
 }
 
@@ -802,9 +802,10 @@ function renderMonthTrend() {
   const monthData = {};
   for (const c of filtered) {
     const sourcingDate = parseDate(c.sourcingDate);
+    const joiningDate = parseDate(c.joiningDate);
     bumpMonthCount(monthData, sourcingDate, 'sourced');
     if (['Final Select','Offered'].includes(c.status)) bumpMonthCount(monthData, sourcingDate, 'selected');
-    if (c.status === 'Joined') bumpMonthCount(monthData, sourcingDate, 'joined');
+    if (c.status === 'Joined') bumpMonthCount(monthData, joiningDate || sourcingDate, 'joined');
   }
 
   const months = sortMonthLabels(Object.keys(monthData));
@@ -1213,9 +1214,11 @@ function getCandidatesMatchingFilters({ includeMonth = true, monthMode = 'sourci
     if (recruiter && c.recruiter  !== recruiter) return false;
     const monthDate = monthMode === 'lastActivity'
       ? getCandidateLastActivityDate(c)
-      : parseDate(c.sourcingDate);
+      : monthMode === 'primary'
+        ? getCandidateFilterDate(c)
+        : parseDate(c.sourcingDate);
     if (includeMonth && months.length && !months.includes(getMonthLabel(monthDate))) return false;
-    if (weeks.length && !weeks.includes(getWeekLabel(c.sourcingDate))) return false;
+    if (weeks.length && !weeks.includes(getWeekLabel(getCandidateFilterDate(c)))) return false;
     return true;
   });
 }
@@ -1284,6 +1287,14 @@ function getCandidateLastActivityDate(candidate) {
     parseDate(candidate.joiningDate),
   ].filter(Boolean);
   return dates.sort((a, b) => b - a)[0] || null;
+}
+
+function getCandidateFilterDate(candidate) {
+  if (candidate?.status === 'Joined') {
+    const joiningDate = parseDate(candidate.joiningDate);
+    if (joiningDate) return joiningDate;
+  }
+  return parseDate(candidate?.sourcingDate);
 }
 
 function hasAnyInterview(candidate) {
