@@ -163,8 +163,8 @@ code{background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:va
     <span class="admin-pill">admin</span>
   </div>
   <div class="nav-right">
-    <span id="save-indicator" style="font-size:10px;font-weight:700;font-family:var(--mono);padding:4px 10px;border-radius:4px;background:var(--surface2);border:1px solid var(--border);color:var(--muted)">No changes</span>
-    <button class="btn-clear-state" onclick="clearSavedState()">↺ Revert</button>
+    <span id="save-indicator" style="font-size:10px;font-weight:700;font-family:var(--mono);padding:4px 10px;border-radius:4px;background:var(--surface2);border:1px solid var(--border);color:var(--muted)">Live config</span>
+    <button id="discard-draft-btn" class="btn-clear-state hidden" onclick="clearSavedState()">Discard draft</button>
     <span class="nav-user" id="user-name"></span>
     <a href="/dashboard" class="nav-link">← Dashboard</a>
     <button onclick="logout()" class="nav-link">Sign out</button>
@@ -189,8 +189,7 @@ code{background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:va
   <div class="sidebar-divider"></div>
   <div class="sidebar-group">
     <div class="sidebar-group-label">Output</div>
-    <button class="sidebar-btn" onclick="nav('generate',this)"><span class="sidebar-icon">⚙️</span>Generate Code</button>
-    <button class="sidebar-btn" onclick="nav('deploy',this)"><span class="sidebar-icon">🚀</span>Deploy Guide</button>
+    <button class="sidebar-btn" onclick="nav('generate',this)"><span class="sidebar-icon">🚀</span>Deploy Config</button>
   </div>
 </aside>
 
@@ -199,7 +198,7 @@ code{background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:va
 <!-- DEPTS & ROLES -->
 <div class="page active" id="page-depts">
   <div class="page-hd"><h1>Departments & Roles</h1><p>Add, rename, or remove departments and their roles. Role order controls dropdown ordering.</p></div>
-  <div class="info">Changes are <strong>auto-saved to your browser</strong>. Nothing on the live portal changes until you Generate Code and deploy.</div>
+  <div class="info">Changes are saved as a browser draft. Nothing changes in the portal or sheet until you deploy config.</div>
   <div class="card">
     <div class="card-hd"><span class="card-title">Add Department</span></div>
     <div class="card-body">
@@ -315,56 +314,16 @@ code{background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:va
   </div>
 </div>
 
-<!-- GENERATE -->
+<!-- DEPLOY CONFIG -->
 <div class="page" id="page-generate">
-  <div class="page-hd"><h1>Generate Code</h1><p>Produces copy-paste ready code blocks from your current config. Paste each into the right file, then git push.</p></div>
+  <div class="page-hd"><h1>Deploy Config</h1><p>Writes the current admin config into the portal fallback file and the <code>⚙ GAS Config</code> sheet.</p></div>
   <div style="margin-bottom:20px">
     <div class="gen-bar" style="margin-bottom:10px">
-      <div class="gen-bar-text"><h3>🚀 One-click deploy</h3><p>Commits config.js + access.js to GitHub and writes GAS config to the sheet. Netlify auto-deploys in ~30s.</p></div>
+      <div class="gen-bar-text"><h3>Deploy admin config</h3><p>Updates <code>⚙ GAS Config</code> and commits the fallback config file. Netlify auto-deploys the branch in about 30 seconds.</p></div>
       <button class="gen-btn" id="deploy-btn" onclick="deployToGitHub()" style="background:var(--green);color:#0D1117;min-width:120px">🚀 Deploy</button>
     </div>
     <div id="deploy-status" class="hidden" style="font-size:11px;font-family:var(--mono);padding:10px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg);margin-bottom:10px;line-height:1.6"></div>
-    <div class="gen-bar" style="background:transparent;border-color:var(--border)">
-      <div class="gen-bar-text"><h3>Manual copy blocks</h3><p>For GAS scripts and candidate.js — still need manual paste into Apps Script editor.</p></div>
-      <button class="gen-btn" onclick="generateAll()">⚙ Generate</button>
-    </div>
-  </div>
-  <div id="gen-out" class="hidden">
-    <div class="warn" style="margin-bottom:16px">These blocks are for GAS scripts and candidate.js only — everything else is handled by the Deploy button above.</div>
-    <div class="code-block">
-      <div class="code-hd"><span class="code-file">📄 <span>public/src/candidate.js</span> — replace ACCESS, MANAGER_NAME_EMAIL, KNOWN_PEOPLE at top of file</span><button class="copy-btn" onclick="copyOut('out-candidate',this)">Copy</button></div>
-      <textarea class="code-ta" id="out-candidate" rows="14" readonly></textarea>
-    </div>
-    <div class="code-block">
-      <div class="code-hd"><span class="code-file">📄 <span>HiringTracker_v1.gs</span> — replace DEPT_ROLES, ROLE_PIPELINE, ROLE_MANAGERS, RECRUITERS</span><button class="copy-btn" onclick="copyOut('out-gas-tracker',this)">Copy</button></div>
-      <textarea class="code-ta" id="out-gas-tracker" rows="20" readonly></textarea>
-    </div>
-    <div class="code-block">
-      <div class="code-hd"><span class="code-file">📄 <span>EmailAutomations.gs</span> — replace EA, STATUS_THRESHOLD, MANAGER_EMAILS, RECRUITER_EMAILS</span><button class="copy-btn" onclick="copyOut('out-gas-email',this)">Copy</button></div>
-      <textarea class="code-ta" id="out-gas-email" rows="20" readonly></textarea>
-    </div>
-  </div>
-</div>
-
-<!-- DEPLOY GUIDE -->
-<div class="page" id="page-deploy">
-  <div class="page-hd"><h1>Deploy Guide</h1><p>How to apply changes from this panel to the live portal and Google Sheets.</p></div>
-  <div class="card">
-    <div class="card-hd"><span class="card-title">Portal (Netlify) — 4 steps</span></div>
-    <div class="card-body" style="padding:4px 0">
-      <div class="step"><div class="step-num">1</div><div class="step-body"><h4>Make your changes here</h4><p>Edit roles, pipelines, access, people. Changes auto-save to your browser — you can close and come back.</p></div></div>
-      <div class="step"><div class="step-num">2</div><div class="step-body"><h4>Go to Generate Code</h4><p>Click "Generate All" — you'll get a code block for each file that needs updating.</p></div></div>
-      <div class="step"><div class="step-num">3</div><div class="step-body"><h4>Paste into your repo</h4><p>Each block tells you exactly which file and what to replace. For <code>config.js</code>, replace the whole file. For <code>feedback.js</code>, <code>admin-page.js</code>, and <code>access.js</code>, replace only the constants shown.</p></div></div>
-      <div class="step"><div class="step-num">4</div><div class="step-body"><h4>Push to git</h4><p><code>git add . && git commit -m "config: update" && git push</code> — Netlify auto-deploys in ~30 seconds.</p></div></div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-hd"><span class="card-title">Google Apps Script — 3 steps</span></div>
-    <div class="card-body" style="padding:4px 0">
-      <div class="step"><div class="step-num">1</div><div class="step-body"><h4>Generate the GAS blocks</h4><p>Same Generate page — you get blocks for <code>HiringTracker_v1.gs</code> and <code>EmailAutomations.gs</code>.</p></div></div>
-      <div class="step"><div class="step-num">2</div><div class="step-body"><h4>Paste into Apps Script</h4><p>Sheet → Extensions → Apps Script. Find the constant (e.g. <code>const DEPT_ROLES = {</code>) and replace the whole object. Ctrl+S to save.</p></div></div>
-      <div class="step"><div class="step-num">3</div><div class="step-body"><h4>Run Refresh Config in the sheet</h4><p>Use <code>📋 Hiring Tracker → 🔄 Refresh Config</code> to apply dropdown changes to existing rows.</p></div></div>
-    </div>
+    <div class="info">After changing role-manager assignments, use the sheet menu <code>Refresh row dropdowns</code> for affected rows, or run <code>refreshConfig()</code> when you need to rebuild all validations.</div>
   </div>
 </div>
 
@@ -424,22 +383,25 @@ function saveState() {
   } catch(e) { console.warn('Could not save state:', e); }
 }
 
-function updateSaveIndicator(saved) {
+function updateSaveIndicator(hasDraft) {
   const el = document.getElementById('save-indicator');
+  const discardBtn = document.getElementById('discard-draft-btn');
   if (!el) return;
-  if (saved) {
-    el.textContent = '✓ Saved to browser';
-    el.style.color = 'var(--green)';
-    el.style.borderColor = 'rgba(63,185,80,.3)';
-  } else {
-    el.textContent = '● Unsaved changes';
+  if (hasDraft) {
+    el.textContent = 'Draft saved';
     el.style.color = 'var(--yellow)';
     el.style.borderColor = 'rgba(210,153,34,.3)';
+    if (discardBtn) discardBtn.classList.remove('hidden');
+  } else {
+    el.textContent = 'Live config';
+    el.style.color = 'var(--green)';
+    el.style.borderColor = 'rgba(63,185,80,.3)';
+    if (discardBtn) discardBtn.classList.add('hidden');
   }
 }
 
 function clearSavedState() {
-  if (!confirm('Revert all changes back to the live config?\n\nThis cannot be undone.')) return;
+  if (!confirm('Discard your browser draft and reload live config?\n\nThis cannot be undone.')) return;
   localStorage.removeItem(LS_KEY);
   location.reload();
 }
@@ -736,22 +698,12 @@ function renderGas() {
   document.getElementById('gas-portal-url').oninput=function(){S.gas.portalUrl=this.value;saveState()};
 }
 
-// ── GENERATE ──
-function generateAll() {
-  document.getElementById('out-candidate').value   = genCandidateJs();
-  document.getElementById('out-gas-tracker').value = genGasTracker();
-  document.getElementById('out-gas-email').value   = genGasEmail();
-  document.getElementById('gen-out').classList.remove('hidden');
-  setTimeout(()=>document.getElementById('gen-out').scrollIntoView({behavior:'smooth'}),100);
-  toast('Manual blocks generated.',true);
-}
-
 function genConfig() {
   const d=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
   return `// ============================================================
 // PEEPAL HIRING PORTAL — config.js
 // Generated by Admin Panel on ${d}
-// Edit via /admin → Generate Code → paste here → git push
+// Fallback config. Runtime config is read from ⚙ GAS Config.
 // ============================================================
 
 window.PORTAL_CONFIG = {
@@ -914,17 +866,14 @@ async function deployToGitHub() {
       if (githubFailed) msg += `\n✗ GitHub failed: ${r.github.failed.map(f=>f.path.split('/').pop()).join(', ')}`;
       if (sheetOk) msg += `\n✓ Sheet: GAS Config tab updated (${r.sheet.rows} rows)`;
       else msg += `\n✗ Sheet write failed: ${r.sheet?.error || 'unknown error'}`;
-      msg += `\n\nRuntime config now comes from the GAS Config tab. Netlify auto-deploys in ~30s; the generated blocks below are fallback/reference only.`;
+      msg += `\n\nRuntime config now comes from the GAS Config tab. Netlify auto-deploys in ~30s.`;
 
       statusEl.style.color = (githubOk && sheetOk) ? 'var(--green)' : 'var(--yellow)';
       statusEl.textContent = msg;
 
       // Clear saved state since it's now deployed
       localStorage.removeItem('peepal_admin_state_v1');
-const ind = document.getElementById('save-indicator');
-ind.textContent = '✓ Deployed';
-ind.style.color = 'var(--green)';
-ind.style.borderColor = 'rgba(63,185,80,.3)';
+      updateSaveIndicator(false);
       toast('Deployed!', true);
     } else {
       throw new Error(data.error || 'Deploy failed');
