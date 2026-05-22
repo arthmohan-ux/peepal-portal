@@ -4,11 +4,10 @@
 const { jwtVerify } = require('jose');
 const fs   = require('fs');
 const path = require('path');
-const { ACCESS } = require('../lib/access');
+const { getRuntimeAccessConfig, normalizeEmail } = require('../lib/access');
 
 const SECRET     = new TextEncoder().encode(process.env.SESSION_SECRET);
 const IS_DEV     = process.env.NEXTAUTH_URL?.includes('localhost');
-const ADMIN_EMAILS = ACCESS.admins;
 
 async function getSession(event) {
   if (IS_DEV) return { email: 'arth.mohan@peepalconsulting.com', name: 'Arth Mohan' };
@@ -28,7 +27,10 @@ exports.handler = async (event) => {
     return { statusCode: 302, headers: { Location: '/login?redirect=/admin' }, body: '' };
   }
 
-  if (!ADMIN_EMAILS.includes(session.email)) {
+  const accessConfig = await getRuntimeAccessConfig();
+  const adminEmails = accessConfig.adminEmails.map(normalizeEmail);
+
+  if (!adminEmails.includes(normalizeEmail(session.email))) {
     return {
       statusCode: 403,
       headers: { 'Content-Type': 'text/html; charset=utf-8' },

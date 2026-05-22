@@ -3,7 +3,7 @@
 
 const { jwtVerify } = require('jose');
 const { google }    = require('googleapis');
-const { ACCESS, MANAGER_NAME_EMAIL, getUserRole } = require('../lib/access');
+const { getRuntimeAccessConfig, getUserRoleFromAccess, normalizeEmail } = require('../lib/access');
 
 const SECRET = new TextEncoder().encode(process.env.SESSION_SECRET);
 const MIN_FEEDBACK_NOTES_WORDS = 30;
@@ -44,15 +44,16 @@ function colToLetter(col) {
   return letter;
 }
 
-function canWriteFeedback(email, managerName, stage) {
-  const role = getUserRole(email);
+function canWriteFeedback(email, managerName, stage, accessConfig) {
+  const role = getUserRoleFromAccess(email, accessConfig.access);
   if (role === 'admin' || role === 'recruiter') return true;
   if (role === 'kaveri') return stage === 'kaveri_round';
   if (role === 'vijay') return stage === 'vijay_round';
   if (role === 'manager') {
-    const managerEmail = MANAGER_NAME_EMAIL[managerName.toLowerCase()] ||
-                         MANAGER_NAME_EMAIL[managerName] || null;
-    return managerEmail === email && stage === 'manager_round';
+    const managerMap = accessConfig.managerNameEmail || {};
+    const managerEmail = managerMap[String(managerName || '').trim().toLowerCase()] ||
+                         managerMap[String(managerName || '').trim()] || null;
+    return normalizeEmail(managerEmail) === normalizeEmail(email) && stage === 'manager_round';
   }
   return false;
 }
@@ -140,7 +141,9 @@ exports.handler = async (event) => {
     const candidateManager = candidateMeta[3] || '';
     const minWordsRequired = getNotesMinimumWords(candidateDepartment, candidateRole);
 
-    if (!canWriteFeedback(session.email, candidateManager, stage)) {
+    const accessConfig = await getRuntimeAccessConfig();
+
+    if (!canWriteFeedback(session.email, candidateManager, stage, accessConfig)) {
       return {
         statusCode: 403,
         headers,

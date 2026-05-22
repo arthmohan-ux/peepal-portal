@@ -82,34 +82,46 @@ function getSheetClient() {
 }
 
 function buildGasConfigRows(config) {
+  const stamp = new Date().toISOString();
   const rows = [
     ['KEY', 'VALUE', 'LAST_UPDATED'],
-    ['RENJITH_EMAIL',  config.gas.renjith,  new Date().toISOString()],
-    ['KAVERI_EMAIL',   config.gas.kaveri,   new Date().toISOString()],
-    ['VIJAY_EMAIL',    config.gas.vijay,    new Date().toISOString()],
-    ['PORTAL_URL',     config.gas.portalUrl, new Date().toISOString()],
-    ['RECRUITERS',     config.recruiters.join(','), new Date().toISOString()],
+    ['RENJITH_EMAIL',  config.gas.renjith,  stamp],
+    ['KAVERI_EMAIL',   config.gas.kaveri,   stamp],
+    ['VIJAY_EMAIL',    config.gas.vijay,    stamp],
+    ['PORTAL_URL',     config.gas.portalUrl, stamp],
+    ['RECRUITERS',     config.recruiters.join(','), stamp],
+    ['ACCESS_ADMINS',     (config.access?.admins || []).join(','), stamp],
+    ['ACCESS_RECRUITERS', (config.access?.recruiters || []).join(','), stamp],
+    ['ACCESS_MANAGERS',   (config.access?.managers || []).join(','), stamp],
+    ['ACCESS_KAVERI',     (config.access?.kaveri || []).join(','), stamp],
+    ['ACCESS_VIJAY',      (config.access?.vijay || []).join(','), stamp],
+    ['ADMIN_EMAILS',      (config.adminEmails || []).join(','), stamp],
+    ['KNOWN_PEOPLE_JSON', JSON.stringify(config.knownPeople || []), stamp],
+    ['MANAGER_NAME_EMAIL_JSON', JSON.stringify(config.managerNameEmail || {}), stamp],
   ];
 
   for (const [status, days] of Object.entries(config.gas.thresholds)) {
-    rows.push([`THRESHOLD_${status}`, String(days), new Date().toISOString()]);
+    rows.push([`THRESHOLD_${status}`, String(days), stamp]);
   }
   for (const [name, email] of Object.entries(config.gas.managerEmails)) {
-    rows.push([`MANAGER_EMAIL_${name}`, email, new Date().toISOString()]);
+    rows.push([`MANAGER_EMAIL_${name}`, email, stamp]);
   }
   for (const [name, email] of Object.entries(config.gas.recruiterEmails)) {
-    rows.push([`RECRUITER_EMAIL_${name}`, email, new Date().toISOString()]);
+    rows.push([`RECRUITER_EMAIL_${name}`, email, stamp]);
+  }
+  for (const [name, email] of Object.entries(config.managerNameEmail || {})) {
+    rows.push([`MANAGER_NAME_EMAIL_${name}`, email, stamp]);
   }
   for (const [dept, roles] of Object.entries(config.deptRoles)) {
-    rows.push([`DEPT_ROLES_${dept}`, roles.join(','), new Date().toISOString()]);
+    rows.push([`DEPT_ROLES_${dept}`, roles.join(','), stamp]);
   }
   for (const [role, stages] of Object.entries(config.rolePipeline)) {
-    rows.push([`ROLE_PIPELINE_${role}`, stages.join(','), new Date().toISOString()]);
+    rows.push([`ROLE_PIPELINE_${role}`, stages.join(','), stamp]);
   }
   for (const [role, managers] of Object.entries(config.roleManagers)) {
-    rows.push([`ROLE_MANAGERS_${role}`, managers.join(','), new Date().toISOString()]);
+    rows.push([`ROLE_MANAGERS_${role}`, managers.join(','), stamp]);
   }
-  rows.push([`DEPT_ORDER`, config.deptOrder.join(','), new Date().toISOString()]);
+  rows.push([`DEPT_ORDER`, config.deptOrder.join(','), stamp]);
   return rows;
 }
 

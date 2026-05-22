@@ -373,8 +373,9 @@ code{background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:va
 <div class="toast" id="toast"></div>
 
 <script src="/src/config.js"></script>
+<script src="/src/runtime-config.js?v=1"></script>
 <script>
-const C = window.PORTAL_CONFIG;
+let C = window.PORTAL_CONFIG;
 
 // ── LOCALSTORAGE PERSISTENCE ──
 const LS_KEY = 'peepal_admin_state_v1';
@@ -444,10 +445,10 @@ function clearSavedState() {
 }
 
 // Load state (from localStorage if available, else from config.js)
-const S = loadState();
+let S = loadState();
 
 // Show indicator on load
-const hasSavedState = !!localStorage.getItem(LS_KEY);
+let hasSavedState = !!localStorage.getItem(LS_KEY);
 updateSaveIndicator(hasSavedState);
 
 const ALL_STAGES = ['Screening','Aptitude','Assessment','AI Interview','Manager Round','HR Round','Kaveri Round','Vijay Round'];
@@ -913,7 +914,7 @@ async function deployToGitHub() {
       if (githubFailed) msg += `\n✗ GitHub failed: ${r.github.failed.map(f=>f.path.split('/').pop()).join(', ')}`;
       if (sheetOk) msg += `\n✓ Sheet: GAS Config tab updated (${r.sheet.rows} rows)`;
       else msg += `\n✗ Sheet write failed: ${r.sheet?.error || 'unknown error'}`;
-      msg += `\n\nNetlify auto-deploys in ~30s. Remember to update GAS scripts and candidate.js manually using the Generate blocks below.`;
+      msg += `\n\nRuntime config now comes from the GAS Config tab. Netlify auto-deploys in ~30s; the generated blocks below are fallback/reference only.`;
 
       statusEl.style.color = (githubOk && sheetOk) ? 'var(--green)' : 'var(--yellow)';
       statusEl.textContent = msg;
@@ -954,7 +955,18 @@ function fmtObj(obj){
 }
 
 // INIT
-renderDepts();
+async function initAdmin() {
+  if (window.portalConfigReady && !hasSavedState) {
+    await window.portalConfigReady;
+    C = window.PORTAL_CONFIG;
+    S = buildDefaultState();
+  }
+  hasSavedState = !!localStorage.getItem(LS_KEY);
+  updateSaveIndicator(hasSavedState);
+  renderDepts();
+}
+
+initAdmin();
 </script>
 </body>
 </html>

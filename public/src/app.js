@@ -2,7 +2,7 @@
 // Dashboard — loads candidates, manages filters, renders grouped table
 
 // ── DEPT PIPELINE CONFIG (mirrors GAS script) ──
-const ROLE_PIPELINE = {
+let ROLE_PIPELINE = {
   'Consultant - TA':                     ['Screening','Aptitude','Manager Round','HR Round'],
   'Senior Consultant - TA':              ['Screening','Aptitude','Manager Round','Kaveri Round'],
   'ATL - TA':                            ['Screening','Aptitude','Manager Round','Kaveri Round'],
@@ -33,7 +33,7 @@ const ROLE_PIPELINE = {
   "Founders Office":                    ['Screening','Aptitude','AI Interview','Manager Round','Kaveri Round','Vijay Round'],
 };
 
-const DEPT_ROLES = {
+let DEPT_ROLES = {
   'TA':               ['Consultant - TA','Senior Consultant - TA','ATL - TA','Management Trainee (Consultant)- TA','VP - TA','Exec Search - TA','Business Head - C2H'],
   'BD':               ['Executive - BD','Delivery - BD','Analyst - BD','Growth - BD','Lead - BD','Manager - BD','Head - BD'],
   'Central Marketing':['Executive - Central Marketing','GD - Central Marketing','Market Research - Central Marketing','Marketing Lead - Central Marketing','Video Editor - Central Marketing'],
@@ -41,6 +41,7 @@ const DEPT_ROLES = {
   'HR':               ['Operations - HR','Senior TA - HR'],
   "Founders Office": ["Founders Office"],
 };
+let RECRUITERS = window.PORTAL_CONFIG?.RECRUITERS || ['Ramya', 'Krishna', 'Aditi', 'Renjith'];
 
 const REJECT_STATUSES  = ['Screen Reject','Aptitude Reject','Assessment Reject','AI Interview Reject','Manager Round Reject','HR Reject','Kaveri Reject','Vijay Reject','Offer Dropout','Drop'];
 const PENDING_STATUSES = ['Aptitude Pending','Assessment Pending','Assesment Under Review','AI Interview Pending','Manager Round Pending','Manager Feedback Pending','HR Round Pending','HR Feedback Pending','Kaveri Round Pending','Kaveri Feedback Pending','Vijay Round Pending','Vijay Feedback Pending','Hold'];
@@ -51,6 +52,18 @@ const MULTI_SELECT_CONFIG = {
   filterWeek:  { placeholder: 'All Weeks',       singular: 'Week',       plural: 'Weeks' },
   filterMonth: { placeholder: 'All Months',      singular: 'Month',      plural: 'Months' },
 };
+
+function applyPortalConfig() {
+  const config = window.PORTAL_CONFIG || {};
+  if (config.ROLE_PIPELINE) ROLE_PIPELINE = config.ROLE_PIPELINE;
+  if (config.DEPT_ROLES) DEPT_ROLES = config.DEPT_ROLES;
+  if (config.RECRUITERS) RECRUITERS = config.RECRUITERS;
+  window.ROLE_PIPELINE = ROLE_PIPELINE;
+  window.DEPT_ROLES = DEPT_ROLES;
+}
+
+window.__applyAppConfig = applyPortalConfig;
+applyPortalConfig();
 
 // ── STATE ──
 let allCandidates = [];
@@ -64,7 +77,12 @@ let multiSelectState = {
 
 // ── INIT ──
 document.addEventListener('DOMContentLoaded', async () => {
+  if (window.portalConfigReady) {
+    await window.portalConfigReady;
+    applyPortalConfig();
+  }
   initMultiSelects();
+  populateRecruiterFilter();
   populateDepartmentFilter();
   rebuildStatusDropdown(null);
   setupRoleFilter();
@@ -231,6 +249,20 @@ function setupRoleFilter() {
 
 function populateDepartmentFilter() {
   setMultiSelectOptions('filterDept', Object.keys(DEPT_ROLES));
+}
+
+function populateRecruiterFilter() {
+  const recruiterEl = document.getElementById('filterRecruiter');
+  if (!recruiterEl) return;
+  const current = recruiterEl.value;
+  recruiterEl.innerHTML = '<option value="">All Recruiters</option>';
+  RECRUITERS.forEach(recruiter => {
+    const opt = document.createElement('option');
+    opt.value = recruiter;
+    opt.textContent = recruiter;
+    recruiterEl.appendChild(opt);
+  });
+  if (current && RECRUITERS.includes(current)) recruiterEl.value = current;
 }
 
 function rebuildRoleFilter() {
@@ -628,6 +660,7 @@ function logout() {
 window.allCandidates  = () => window.__allCandidates || allCandidates;
 window.__allCandidates = allCandidates;
 window.ROLE_PIPELINE  = ROLE_PIPELINE;
+window.DEPT_ROLES = DEPT_ROLES;
 window.getStatusClass = getStatusClass;
 window.escHtml        = escHtml;
 window.loadCandidates = loadCandidates;

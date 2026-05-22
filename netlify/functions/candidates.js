@@ -3,7 +3,7 @@
 
 const { jwtVerify } = require('jose');
 const { google }    = require('googleapis');
-const { filterCandidatesForUser } = require('../lib/access');
+const { filterCandidatesForUserAsync } = require('../lib/access');
 
 const SECRET = new TextEncoder().encode(process.env.SESSION_SECRET);
 const STATUS_COL_A1 = 'S';
@@ -153,7 +153,7 @@ exports.handler = async (event) => {
     const allCandidates = rows
       .map((row, i) => rowToCandidate(row, i, noteRows[i]?.values?.[0]?.note || ''))
       .filter(c => c.name && c.name.length > 0);
-    const candidates = filterCandidatesForUser(session.email, allCandidates);
+    const candidates = await filterCandidatesForUserAsync(session.email, allCandidates);
 
     return {
       statusCode: 200,

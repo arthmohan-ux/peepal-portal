@@ -3,7 +3,7 @@
   functions = "netlify/functions"
 
 [functions]
-  included_files = ["public/dashboard.html", "public/analytics.html", "netlify/functions/admin.html"]
+  included_files = ["public/dashboard.html", "public/analytics.html", "public/src/config.js", "netlify/functions/admin.html"]
 
 [build.environment]
   SECRETS_SCAN_OMIT_PATHS = ".env.example,src/candidate.js,src/auth.js,netlify/functions/candidates.js,netlify/functions/feedback.js"
@@ -11,6 +11,11 @@
 [dev]
   port = 3000
   targetPort = 8888
+
+[[redirects]]
+  from = "/api/config"
+  to = "/.netlify/functions/config"
+  status = 200
 
 [[redirects]]
   from = "/api/me"

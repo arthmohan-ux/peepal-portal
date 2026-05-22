@@ -2,9 +2,9 @@
 // Analytics dashboard — pipeline funnel, TAT, dept breakdown, recruiter perf, trends
 
 // ── CONFIG (mirrors app.js) ──
-const DEPT_ORDER = ['TA','BD','Central Marketing','TAD','HR',"Founders Office"];
+let DEPT_ORDER = ['TA','BD','Central Marketing','TAD','HR',"Founders Office"];
 
-const DEPT_ROLES = {
+let DEPT_ROLES = {
   'TA':               ['Consultant - TA','Senior Consultant - TA','ATL - TA','Management Trainee (Consultant)- TA','VP - TA','Exec Search - TA','Business Head - C2H'],
   'BD':               ['Executive - BD','Delivery - BD','Analyst - BD','Growth - BD','Lead - BD','Manager - BD','Head - BD'],
   'Central Marketing':['Executive - Central Marketing','GD - Central Marketing','Market Research - Central Marketing','Marketing Lead - Central Marketing','Video Editor - Central Marketing'],
@@ -13,7 +13,7 @@ const DEPT_ROLES = {
   "Founders Office": ["Founders Office"],
 };
 
-const ROLE_PIPELINE = {
+let ROLE_PIPELINE = {
   'Consultant - TA':                     ['Screening','Aptitude','Manager Round','HR Round'],
   'Senior Consultant - TA':              ['Screening','Aptitude','Manager Round','Kaveri Round'],
   'ATL - TA':                            ['Screening','Aptitude','Manager Round','Kaveri Round'],
@@ -72,6 +72,16 @@ const STATUS_FC_CLASS = {
 };
 
 const DEFAULT_ROLE_PIPELINE = ['Screening','Aptitude','Manager Round','Kaveri Round','Vijay Round'];
+
+function applyAnalyticsConfig() {
+  const config = window.PORTAL_CONFIG || {};
+  if (config.DEPT_ORDER) DEPT_ORDER = config.DEPT_ORDER;
+  if (config.DEPT_ROLES) DEPT_ROLES = config.DEPT_ROLES;
+  if (config.ROLE_PIPELINE) ROLE_PIPELINE = config.ROLE_PIPELINE;
+}
+
+window.__applyAnalyticsConfig = applyAnalyticsConfig;
+applyAnalyticsConfig();
 
 const ACTIVE_POST_APTITUDE_STATUSES = new Set([
   'Assessment Pending',
@@ -187,6 +197,10 @@ let multiSelectState = {
 
 // ── INIT ──
 document.addEventListener('DOMContentLoaded', async () => {
+  if (window.portalConfigReady) {
+    await window.portalConfigReady;
+    applyAnalyticsConfig();
+  }
   initMultiSelects();
   // Auth check
   try {
