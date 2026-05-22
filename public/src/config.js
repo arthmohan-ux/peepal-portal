@@ -63,11 +63,11 @@ window.PORTAL_CONFIG = {
   'Lead - BD': ["Kaveri"],
   'Manager - BD': ["Kaveri"],
   'Head - BD': ["Kaveri"],
-  'Executive - Central Marketing': ["Kaveri"],
-  'GD - Central Marketing': ["Kaveri"],
-  'Market Research - Central Marketing': ["Kaveri"],
+  'Executive - Central Marketing': ["Kaveri","Abheek"],
+  'GD - Central Marketing': ["Kaveri","Abheek"],
+  'Market Research - Central Marketing': ["Kaveri","Abheek"],
   'Marketing Lead - Central Marketing': ["Kaveri"],
-  'Video Editor - Central Marketing': ["Kaveri"],
+  'Video Editor - Central Marketing': ["Kaveri","Abheek"],
   'BD & CR - TAD': ["Parv"],
   'MT (BD & CR) - TAD': ["Parv"],
   'GD - TAD': ["Parv"],
@@ -85,7 +85,7 @@ window.PORTAL_CONFIG = {
   ACCESS: {
     admins:     ["arth.mohan@peepalconsulting.com","anish.k@peepalconsulting.com","renjith.k@peepalconsulting.com","sambhav.m@peepalconsulting.com"],
     recruiters: ["ramya.h@peepalconsulting.com","krishna.kumar@peepalconsulting.com","aditi.kaul@peepalconsulting.com","renjith.k@peepalconsulting.com"],
-    managers:   ["ravi.kant.sharma@peepalconsulting.com","ambika.s@peepalconsulting.com","shiwala.dubey@peepalconsulting.com","parv.u@peepalconsulting.com","ramakrishna.d@peepalconsulting.com","rohan.p@peepalconsulting.com","rupa.moogi@peepalconsulting.com","mayank.bajaj@peepalconsulting.com"],
+    managers:   ["ravi.kant.sharma@peepalconsulting.com","ambika.s@peepalconsulting.com","shiwala.dubey@peepalconsulting.com","parv.u@peepalconsulting.com","ramakrishna.d@peepalconsulting.com","rohan.p@peepalconsulting.com","rupa.moogi@peepalconsulting.com","mayank.bajaj@peepalconsulting.com","abheek.kakkar@peepalconsulting.com"],
     kaveri:     ["kaveri.karnam@peepalconsulting.com"],
     vijay:      ["vijay@peepalconsulting.com"],
   },
@@ -101,6 +101,7 @@ window.PORTAL_CONFIG = {
   'Rupa': "rupa.moogi@peepalconsulting.com",
   'Mayank': "mayank.bajaj@peepalconsulting.com",
   'Renjith': "renjith.k@peepalconsulting.com",
+  'Abheek': "abheek.kakkar@peepalconsulting.com",
 },
 
   KNOWN_PEOPLE: [
@@ -171,6 +172,10 @@ window.PORTAL_CONFIG = {
     {
         "name": "Rupa",
         "email": "rupa.moogi@peepalconsulting.com"
+    },
+    {
+        "name": "Abheek",
+        "email": "abheek.kakkar@peepalconsulting.com"
     }
 ],
 
