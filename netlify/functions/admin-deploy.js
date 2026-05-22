@@ -11,7 +11,7 @@ const IS_DEV        = process.env.NEXTAUTH_URL?.includes('localhost');
 const ADMIN_EMAILS  = ACCESS.admins;
 const GITHUB_TOKEN  = process.env.GITHUB_TOKEN;
 const GITHUB_REPO   = process.env.GITHUB_REPO;
-const GITHUB_BRANCH = process.env.GITHUB_BRANCH || 'main';
+const GITHUB_BRANCH = process.env.BRANCH || process.env.GITHUB_BRANCH || 'main';
 const GAS_CONFIG_SHEET = '⚙ GAS Config';
 
 async function getSession(event) {

@@ -2,10 +2,11 @@
 // Handles Google OAuth redirect, validates domain, sets session cookie
 
 const { SignJWT } = require('jose');
+const { getRequestOrigin } = require('../lib/request-url');
 
 const SECRET = new TextEncoder().encode(process.env.SESSION_SECRET);
 
-async function exchangeCode(code) {
+async function exchangeCode(code, redirectUri) {
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -13,7 +14,7 @@ async function exchangeCode(code) {
       code,
       client_id:     process.env.GOOGLE_CLIENT_ID,
       client_secret: process.env.GOOGLE_CLIENT_SECRET,
-      redirect_uri:  `${process.env.NEXTAUTH_URL}/.netlify/functions/auth-callback`,
+      redirect_uri:  redirectUri,
       grant_type:    'authorization_code',
     }),
   });
@@ -31,6 +32,8 @@ exports.handler = async (event) => {
   const params = new URLSearchParams(event.rawQuery || '');
   const code   = params.get('code');
   const error  = params.get('error');
+  const origin = getRequestOrigin(event);
+  const redirectUri = `${origin}/.netlify/functions/auth-callback`;
   const loginErrorUrl = (code) => `/login#auth_error=${encodeURIComponent(code)}`;
 
   if (error || !code) {
@@ -38,7 +41,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const tokens = await exchangeCode(code);
+    const tokens = await exchangeCode(code, redirectUri);
     if (tokens.error) {
       return { statusCode: 302, headers: { Location: loginErrorUrl('token_failed') }, body: '' };
     }
@@ -78,7 +81,7 @@ exports.handler = async (event) => {
       statusCode: 302,
       headers: {
         Location: redirectTo,
-        'Set-Cookie': `peepal_session=${session}; HttpOnly; ${process.env.NEXTAUTH_URL?.startsWith('https') ? 'Secure; ' : ''}SameSite=Lax; Max-Age=28800; Path=/`,
+        'Set-Cookie': `peepal_session=${session}; HttpOnly; ${origin.startsWith('https') ? 'Secure; ' : ''}SameSite=Lax; Max-Age=28800; Path=/`,
       },
       body: '',
     };

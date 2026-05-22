@@ -2,8 +2,11 @@
 // Redirects user to Google OAuth consent screen
 // Preserves ?candidate= param through login via OAuth state
 
+const { getRequestOrigin } = require('../lib/request-url');
+
 exports.handler = async (event, context) => {
   const rootUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
+  const origin = getRequestOrigin(event);
 
   // Grab any ?candidate= or ?redirect= from the login URL and pass through state
   const qs        = new URLSearchParams(event.rawQuery || '');
@@ -16,7 +19,7 @@ exports.handler = async (event, context) => {
 
   const params = new URLSearchParams({
     client_id:     process.env.GOOGLE_CLIENT_ID,
-    redirect_uri:  `${process.env.NEXTAUTH_URL}/.netlify/functions/auth-callback`,
+    redirect_uri:  `${origin}/.netlify/functions/auth-callback`,
     response_type: 'code',
     scope:         'openid email profile',
     access_type:   'offline',
