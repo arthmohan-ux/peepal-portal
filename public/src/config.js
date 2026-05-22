@@ -77,7 +77,7 @@ window.PORTAL_CONFIG = {
   'Operations - HR': ["Renjith"],
   'Senior TA - HR': ["Renjith"],
   'Founders Office': ["Kaveri"],
-  'TA - HR': [],
+  'TA - HR': ["Renjith"],
 },
 
   RECRUITERS: ["Ramya","Krishna","Aditi","Renjith"],
