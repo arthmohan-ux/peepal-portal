@@ -2,7 +2,7 @@
 // Candidate side panel — full info view, pipeline timeline, scores, feedback form
 
 // ── ROLE-BASED ACCESS CONFIG ──
-const ACCESS = {
+let ACCESS = {
   admins:     ["arth.mohan@peepalconsulting.com","anish.k@peepalconsulting.com","renjith.k@peepalconsulting.com","sambhav.m@peepalconsulting.com"],
   recruiters: ["ramya.h@peepalconsulting.com","krishna.kumar@peepalconsulting.com","aditi.kaul@peepalconsulting.com","renjith.k@peepalconsulting.com"],
   managers:   ["ravi.kant.sharma@peepalconsulting.com","ambika.s@peepalconsulting.com","shiwala.dubey@peepalconsulting.com","parv.u@peepalconsulting.com","ramakrishna.d@peepalconsulting.com","rohan.p@peepalconsulting.com","rupa.moogi@peepalconsulting.com","mayank.bajaj@peepalconsulting.com"],
@@ -11,7 +11,7 @@ const ACCESS = {
 };
 
 // Manager first-name → email map for matching sheet "Manager" column
-const MANAGER_NAME_EMAIL = {
+let MANAGER_NAME_EMAIL = {
   'Kaveri':  'kaveri.karnam@peepalconsulting.com',
   'Ravikant':  'ravi.kant.sharma@peepalconsulting.com',
   'Ambika':  'ambika.s@peepalconsulting.com',

@@ -386,10 +386,9 @@ exports.handler = async (event) => {
   const author = session.name || session.email;
   const results = { github: { committed: [], failed: [] }, sheet: null };
 
-  // 1. Commit config.js and access.js (full file replace)
+  // 1. Commit the fallback browser config. Runtime source of truth is still ⚙ GAS Config.
   const filesToCommit = [
     { path: 'public/src/config.js',  content: generateConfigJs(config) },
-    { path: 'netlify/lib/access.js', content: generateAccessJs(config) },
   ];
 
   for (const file of filesToCommit) {
@@ -402,16 +401,7 @@ exports.handler = async (event) => {
     }
   }
 
-  // 2. Patch candidate.js (targeted replace of top config block only)
-  try {
-    await patchCandidateJs(config, author);
-    results.github.committed.push('public/src/candidate.js');
-  } catch(err) {
-    console.error('candidate.js patch failed:', err.message);
-    results.github.failed.push({ path: 'public/src/candidate.js', error: err.message });
-  }
-
-  // 3. Write config to ⚙ GAS Config sheet
+  // 2. Write config to ⚙ GAS Config sheet. Access/candidate code reads this at runtime.
   try {
     const rowCount = await writeGasConfig(config);
     results.sheet = { success: true, rows: rowCount };
