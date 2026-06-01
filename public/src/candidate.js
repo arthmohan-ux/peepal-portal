@@ -23,6 +23,47 @@ let MANAGER_NAME_EMAIL = {
   'Mayank':  'mayank.bajaj@peepalconsulting.com',
   'Renjith':  'renjith.k@peepalconsulting.com',
 };
+
+function getUserRole(email) {
+  if (!email) return 'viewer';
+  if (ACCESS.admins.includes(email)) return 'admin';
+  if (ACCESS.recruiters.includes(email)) return 'recruiter';
+  if (ACCESS.kaveri.includes(email)) return 'kaveri';
+  if (ACCESS.vijay.includes(email)) return 'vijay';
+  if (ACCESS.managers.includes(email)) return 'manager';
+  return 'viewer';
+}
+
+function canWriteFeedback(email, candidate, stage) {
+  const role = getUserRole(email);
+  if (role === 'admin' || role === 'recruiter') return true;
+  if (role === 'kaveri') return stage === 'kaveri_round';
+  if (role === 'vijay') return stage === 'vijay_round';
+  if (role === 'manager') {
+    const managerEmail = MANAGER_NAME_EMAIL[candidate.manager];
+    return managerEmail === email && stage === 'manager_round';
+  }
+  return false;
+}
+
+function getPermittedFeedbackStages(email, candidate, availableRounds) {
+  const role = getUserRole(email);
+  const stageKeys = availableRounds.map(stage => ({
+    label: stage,
+    key: stage.toLowerCase().replace(/\s+/g, '_'),
+  }));
+  const recruiterHrStage = { label: 'Recruiter / HR Feedback', key: 'recruiter_hr_feedback' };
+
+  if (role === 'admin' || role === 'recruiter') return [recruiterHrStage, ...stageKeys];
+  if (role === 'kaveri') return stageKeys.filter(stage => stage.key === 'kaveri_round');
+  if (role === 'vijay') return stageKeys.filter(stage => stage.key === 'vijay_round');
+  if (role === 'manager') {
+    const managerEmail = MANAGER_NAME_EMAIL[candidate.manager];
+    if (managerEmail !== email) return [];
+    return stageKeys.filter(stage => stage.key === 'manager_round');
+  }
+  return [];
+}
 // ── KNOWN PEOPLE for recipient picker ──
 let KNOWN_PEOPLE = [
   { name: 'Ramya',       email: 'ramya.h@peepalconsulting.com' },
@@ -1319,7 +1360,14 @@ function countWords(text) {
   return String(text || '').trim().split(/\s+/).filter(Boolean).length;
 }
 
+function openCandidatePanel(event) {
+  const trigger = event?.currentTarget || event?.target;
+  const row = Number(trigger?.closest('tr')?.dataset?.candidateRow || 0);
+  if (row) openCandidatePanelByRow(row);
+}
+
 // ── EXPOSE GLOBALS ──
+window.openCandidatePanel      = openCandidatePanel;
 window.openCandidatePanelByRow = openCandidatePanelByRow;
 window.closeCandidatePanel     = closeCandidatePanel;
 window.forceClosePanel         = forceClosePanel;
