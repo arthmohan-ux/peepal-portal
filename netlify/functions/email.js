@@ -1,5 +1,5 @@
 // netlify/functions/email.js
-// POST — sends candidate summary email via SendGrid
+// POST — sends candidate summary email via Resend
 
 const { jwtVerify } = require('jose');
 const { canViewCandidateForConfig, getRuntimeAccessConfig } = require('../lib/access');
@@ -243,19 +243,6 @@ function buildEmailHtml({ candidate, stage, customMsg, includeProfile=true, incl
   return { subject, html };
 }
 
-function encodeEmail({ to, cc, subject, html }) {
-  const toStr = Array.isArray(to) ? to.join(', ') : to;
-  const ccStr = cc && cc.length > 0 ? (Array.isArray(cc) ? cc.join(', ') : cc) : null;
-  const from  = `Peepal Hiring Portal <${process.env.GMAIL_SENDER}>`;
-  const raw   = [
-    `From: ${from}`, `To: ${toStr}`,
-    ccStr ? `Cc: ${ccStr}` : null,
-    `Subject: ${subject}`, 'MIME-Version: 1.0',
-    'Content-Type: text/html; charset=UTF-8', '', html,
-  ].filter(Boolean).join('\r\n');
-  return Buffer.from(raw).toString('base64url');
-}
-
 exports.handler = async (event) => {
   const headers = { 'Content-Type': 'application/json' };
 
@@ -286,26 +273,30 @@ exports.handler = async (event) => {
     });
 
     const finalSubject = customSubject || subject;
-    const fromEmail = process.env.GMAIL_SENDER || 'arth.mohan@peepalconsulting.com';
+    const fromEmail = process.env.RESEND_FROM_EMAIL || process.env.GMAIL_SENDER || 'arth.mohan@peepalconsulting.com';
 
-    // Send via SendGrid
-    const sgRes = await fetch('https://api.sendgrid.com/v3/mail/send', {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY is not configured');
+    }
+
+    const resendRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        personalizations: [{ to: to.map(email => ({ email })), ...(cc?.length ? { cc: cc.map(email => ({ email })) } : {}) }],
-        from: { email: fromEmail, name: 'Peepal Hiring Portal' },
+        from: `Peepal Hiring Portal <${fromEmail}>`,
+        to,
+        ...(cc?.length ? { cc } : {}),
         subject: finalSubject,
-        content: [{ type: 'text/html', value: html }],
+        html,
       }),
     });
 
-    if (!sgRes.ok) {
-      const errText = await sgRes.text();
-      throw new Error(`SendGrid error ${sgRes.status}: ${errText}`);
+    if (!resendRes.ok) {
+      const errText = await resendRes.text();
+      throw new Error(`Resend error ${resendRes.status}: ${errText}`);
     }
 
     return {
